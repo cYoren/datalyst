@@ -77,3 +77,4 @@ signing/ios/*.mobileprovision
 /server*.log
 /test-results/
 /.native-artifacts/
+clients/apple-watch/*.xcodeproj

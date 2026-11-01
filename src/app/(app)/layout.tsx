@@ -7,7 +7,6 @@ import { Calendar, Plus, PlusCircle, Settings, BarChart3, FlaskConical, BookOpen
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/ui/UserMenu';
 import { ToastProvider } from '@/components/ui/Toast';
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { SWRProvider } from '@/providers/SWRProvider';
 import { triggerSelectionHaptic } from '@/lib/haptics';
 import { syncHealth } from '@/lib/health';
@@ -80,8 +79,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { href: '/data', icon: BarChart3, label: 'Data' },
         { href: '/habits/templates', icon: BookOpen, label: 'Templates' },
         { href: '/settings', icon: Settings, label: 'Settings' },
-        { href: '/habits/new', icon: PlusCircle, label: 'Create Tracker' },
-        { href: '/lab', icon: FlaskConical, label: 'Lab (Advanced)', title: 'Optional controlled experiments' },
+        { href: '/habits/new', icon: PlusCircle, label: 'Create tracker' },
+        { href: '/lab', icon: FlaskConical, label: 'Experiments', title: 'Test what works for you' },
     ];
 
     const mobileNavItems = [
@@ -107,7 +106,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
 
                 <nav className="flex-1 py-3" aria-label="Main">
-                    {navItems.map((item, index) => {
+                    {navItems.map((item) => {
                         const isActive = isItemActive(item.href);
                         return (
                             <Link
@@ -117,14 +116,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 aria-current={isActive ? 'page' : undefined}
                                 {...('title' in item && item.title ? { title: item.title } : {})}
                                 className={cn(
-                                    "flex items-center gap-3 border-l-2 px-5 py-3 font-mono text-[0.72rem] font-medium uppercase tracking-[0.12em] transition-colors",
+                                    "mx-3 flex items-center gap-3 rounded-[var(--radius-button)] px-3 py-2.5 text-sm font-medium transition-colors",
                                     isActive
-                                        ? "border-[var(--color-accent)] bg-[var(--color-bg-card)] text-[var(--color-text-primary)]"
-                                        : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--text-primary)]"
+                                        ? "bg-[var(--color-bg-card)] text-[var(--color-text-primary)]"
+                                        : "text-[var(--text-secondary)] hover:bg-[var(--color-bg-card)] hover:text-[var(--text-primary)]"
                                 )}
                             >
-                                <span className={cn("tabular-nums", isActive ? "text-[var(--color-accent)]" : "text-[var(--text-tertiary)]")}>{String(index + 1).padStart(2, '0')}</span>
-                                <item.icon className="h-4 w-4 shrink-0" suppressHydrationWarning />
+                                <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-[var(--color-accent)]")} suppressHydrationWarning />
                                 {item.label}
                             </Link>
                         );
@@ -164,7 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             ) : (
                                 <>
                                     <item.icon className={cn("h-5 w-5 mb-1", isActive && "text-[var(--color-accent)]")} suppressHydrationWarning />
-                                    <span className="font-mono text-[10px] font-medium uppercase tracking-[0.1em]">{item.label}</span>
+                                    <span className="text-[11px] font-medium">{item.label}</span>
                                 </>
                             )}
                         </Link>
@@ -178,7 +176,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <main className="max-w-5xl mx-auto px-4 py-5 sm:px-8 sm:py-8 animate-fade-in min-h-screen-safe">
                 <SWRProvider>
                     <ToastProvider>
-                        <Breadcrumbs />
                         {children}
                     </ToastProvider>
                 </SWRProvider>

@@ -367,7 +367,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                 </Card>
 
                 {/* Progress Card */}
-                <Card className="p-6 paper-lift shadow-[var(--shadow-card)] border border-[var(--color-border)]">
+                <Card className="p-6 paper-lift shadow-[var(--shadow-card)]">
                     <h3 className="text-lg font-semibold font-display text-[var(--text-primary)] mb-4">
                         Experiment Progress
                     </h3>
@@ -580,7 +580,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                             {/* Next Steps */}
                             {stats.interpretation.nextSteps.length > 0 && (
                                 <div className="mb-4">
-                                    <div className="text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wide mb-2">
+                                    <div className="text-xs font-semibold text-[var(--text-tertiary)] mb-2">
                                         What to do next
                                     </div>
                                     <ul className="space-y-1">
@@ -740,7 +740,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                             <FlaskConical className="h-16 w-16 text-[var(--color-violet)]" />
                         </div>
                         <div className="space-y-1">
-                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-widest">
+                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)]">
                                 Probability of Effect
                             </h3>
                             <div className="text-4xl font-black text-[var(--color-violet)] font-display tracking-tight">
@@ -763,7 +763,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                     {/* Effect Size */}
                     <Card className="p-6 space-y-4 border border-[var(--color-violet)]/40 border-b-4 border-b-[var(--color-violet)]  paper-lift">
                         <div className="space-y-1">
-                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-widest">
+                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)]">
                                 Effect Size (d)
                             </h3>
                             <div className="text-4xl font-black text-[var(--color-violet)] font-display tracking-tight">
@@ -781,7 +781,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                     {/* Condition Means */}
                     <Card className="p-6 space-y-4 border border-[var(--color-teal)]/40 border-b-4 border-b-[var(--color-teal)]  paper-lift">
                         <div className="space-y-3">
-                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)] uppercase tracking-widest">
+                            <h3 className="text-[11px] font-bold text-[var(--text-tertiary)]">
                                 Condition Averages
                             </h3>
                             <div className="space-y-2">
@@ -814,7 +814,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                                     </span>
                                 )}
                             </div>
-                            <div className="pt-1 text-[10px] text-[var(--text-tertiary)] italic">
+                            <div className="pt-1 text-[10px] text-[var(--text-tertiary)]">
                                 * Excluding washout/adaptation days
                             </div>
                         </div>
@@ -826,7 +826,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
             <DataQualitySection stats={stats} experiment={experiment} />
 
             {/* Chart */}
-            <Card className="p-6 border border-[var(--color-border)] shadow-[var(--shadow-card)] paper-lift">
+            <Card className="p-6 shadow-[var(--shadow-card)] paper-lift">
                 <h2 className="text-lg font-semibold font-display text-[var(--text-primary)] mb-4">
                     Correlation Analysis
                 </h2>

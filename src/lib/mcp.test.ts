@@ -78,7 +78,7 @@ describe('MCP transport', () => {
     it('lists all tools with JSON schemas', async () => {
         const body = await (await post({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).json();
         const names = body.result.tools.map((t: { name: string }) => t.name);
-        expect(names).toEqual(['get_study_protocol_schema', 'list_studies', 'create_study_draft', 'get_study_evidence', 'list_trackers', 'get_today', 'log_checkin', 'get_entries', 'get_correlations', 'list_experiments', 'create_experiment', 'get_experiment_results', 'export_data']);
+        expect(names).toEqual(['get_study_protocol_schema', 'list_studies', 'create_study_draft', 'get_study_evidence', 'list_trackers', 'create_tracker', 'get_today', 'parse_log', 'log_checkin', 'get_entries', 'get_correlations', 'list_experiments', 'create_experiment', 'get_experiment_results', 'export_data']);
         for (const t of body.result.tools) {
             expect(t.inputSchema.type).toBe('object');
             expect(t.inputSchema.$schema).toBeUndefined();

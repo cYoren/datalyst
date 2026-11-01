@@ -15,8 +15,8 @@
     --font-body: var(--font-inter), system-ui, sans-serif;
 
     --color-bg-app: #121316;
-    --color-bg-card: #17181c;
-    --color-bg-subtle: #1d1f24;
+    --color-bg-card: #1a1b20;
+    --color-bg-subtle: #222429;
     --color-control-bg: #1d1f24;
     --color-control-bg-hover: #24262c;
     --color-control-bg-focus: #24262c;
@@ -42,9 +42,9 @@
     --shadow-card: none;
     --shadow-hover: none;
     --shadow-elevated: 0 24px 64px rgba(0, 0, 0, 0.55);
-    --radius-card: 4px;
-    --radius-button: 2px;
-    --radius-input: 2px;
+    --radius-card: 10px;
+    --radius-button: 8px;
+    --radius-input: 8px;
 
     --bg-app: var(--color-bg-app);
     --bg-card: var(--color-bg-card);
@@ -125,14 +125,13 @@
   .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-reveal-stagger { animation: revealStagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .paper-lift { transition: border-color 0.15s ease; }
-  .paper-lift:hover { border-color: var(--color-border-hover); }
+  .paper-lift { transition: background-color 0.15s ease; }
   .tabular-nums { font-variant-numeric: tabular-nums; }
   .font-display { font-family: var(--font-display); }
   .font-body { font-family: var(--font-body); }
-  /* Mono uppercase label, as in the landing page's "01 / SECTION" bars. */
-  .label-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); }
-  .label-mono b { color: var(--color-text-primary); font-weight: 500; }
+  /* Field and group label. Plain sans: monospace is kept for numbers and code. */
+  .label-mono { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 500; color: var(--color-text-secondary); }
+  .label-mono b { color: var(--color-text-primary); font-weight: 600; }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .mb-safe { margin-bottom: env(safe-area-inset-bottom); }

@@ -73,11 +73,11 @@ export default function LabPage() {
             </div>
 
             {/* Explainer Banner */}
-            <Link href="/lab/studies" className="block border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-card)]">
+            <Link href="/lab/studies" className="block bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-card)]">
                 <span className="font-medium text-[var(--text-primary)]">Researcher studies →</span>
                 <span className="block mt-1 text-sm text-[var(--text-secondary)]">Run AI-assisted protocols with consent, participant schedules and pseudonymous evidence exports.</span>
             </Link>
-            <Card className="p-4 border border-[var(--color-border)] bg-[var(--color-bg-subtle)] ">
+            <Card className="p-4 bg-[var(--color-bg-subtle)] ">
                 <p className="text-sm text-[var(--text-secondary)]">
                     The Lab lets you test specific interventions with randomized experiments. Your Dashboard shows automatic correlations from your data. The Lab goes further by controlling variables to prove causation.
                 </p>
@@ -85,23 +85,23 @@ export default function LabPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-4 text-center paper-lift  border border-[var(--color-border)]">
+                <Card className="p-4 text-center paper-lift">
                     <div className="text-2xl font-bold font-display text-[var(--color-violet)]">{experimentsList.length}</div>
-                    <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mt-1">Total</div>
+                    <div className="text-xs font-medium text-[var(--text-tertiary)] mt-1">Total</div>
                 </Card>
-                <Card className="p-4 text-center paper-lift  border border-[var(--color-border)]">
+                <Card className="p-4 text-center paper-lift">
                     <div className="text-2xl font-bold font-display text-[var(--color-teal)]">{activeCount}</div>
-                    <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mt-1">Active</div>
+                    <div className="text-xs font-medium text-[var(--text-tertiary)] mt-1">Active</div>
                 </Card>
-                <Card className="p-4 text-center paper-lift  border border-[var(--color-border)]">
+                <Card className="p-4 text-center paper-lift">
                     <div className="text-2xl font-bold font-display text-[var(--color-violet)]">{completedCount}</div>
-                    <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mt-1">Completed</div>
+                    <div className="text-xs font-medium text-[var(--text-tertiary)] mt-1">Completed</div>
                 </Card>
-                <Card className="p-4 text-center cursor-pointer hover:bg-[var(--color-bg-subtle)] paper-lift  border border-[var(--color-border)] transition-colors" onClick={() => setStatusFilter(statusFilter === 'ARCHIVED' ? null : 'ARCHIVED')}>
+                <Card className="p-4 text-center cursor-pointer hover:bg-[var(--color-bg-subtle)] paper-lift transition-colors" onClick={() => setStatusFilter(statusFilter === 'ARCHIVED' ? null : 'ARCHIVED')}>
                     <div className="text-2xl font-bold font-display text-[var(--text-secondary)]">
                         {experimentsList.filter(e => e.status === 'ARCHIVED').length}
                     </div>
-                    <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-wider mt-1">Archived</div>
+                    <div className="text-xs font-medium text-[var(--text-tertiary)] mt-1">Archived</div>
                 </Card>
             </div>
 
@@ -129,12 +129,12 @@ export default function LabPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-[var(--color-violet)]" />
                 </div>
             ) : error ? (
-                <Card className="p-8 text-center border border-[var(--color-border)]">
+                <Card className="p-8 text-center">
                     <p className="text-[var(--color-coral)]">Failed to load experiments</p>
                 </Card>
             ) : filteredExperiments.length === 0 ? (
                 <div className="space-y-6">
-                    <Card className="p-8 text-center border border-[var(--color-border)]  paper-lift">
+                    <Card className="p-8 text-center  paper-lift">
                         <FlaskConical className="h-12 w-12 mx-auto text-[var(--text-tertiary)] opacity-50 mb-4" />
                         <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2 font-display">
                             Start Your First Experiment
@@ -150,11 +150,11 @@ export default function LabPage() {
 
                     {/* Popular Starter Experiments */}
                     <div>
-                        <h3 className="text-xs font-bold text-[var(--text-tertiary)] uppercase tracking-widest mb-4">
+                        <h3 className="text-base font-semibold text-[var(--text-primary)] mb-4">
                             Popular first experiments
                         </h3>
                         <div className="grid gap-3 md:grid-cols-3">
-                            <Card className="p-4 paper-lift  border border-[var(--color-border)] hover:border-[var(--color-violet)]/40 hover:bg-[var(--color-violet)]/20 transition-colors cursor-pointer group">
+                            <Card className="p-4 paper-lift hover:border-[var(--color-violet)]/40 hover:bg-[var(--color-violet)]/20 transition-colors cursor-pointer group">
                                 <Link href="/lab/new?template=caffeine" className="block">
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="h-10 w-10 flex items-center justify-center bg-[var(--color-violet)]/15 rounded-[var(--radius-button)]"><TrackerIcon value="coffee" className="h-5 w-5" /></div>
@@ -162,7 +162,7 @@ export default function LabPage() {
                                             <div className="font-semibold font-display text-[var(--text-primary)] group-hover:text-[var(--color-violet)] transition-colors">
                                                 Caffeine → Focus
                                             </div>
-                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">14 days</div>
+                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)]">14 days</div>
                                         </div>
                                     </div>
                                     <p className="text-sm text-[var(--text-secondary)] mt-3">
@@ -171,7 +171,7 @@ export default function LabPage() {
                                 </Link>
                             </Card>
 
-                            <Card className="p-4 paper-lift  border border-[var(--color-border)] hover:border-[var(--color-violet)]/40 hover:bg-[var(--color-violet)]/20 transition-colors cursor-pointer group">
+                            <Card className="p-4 paper-lift hover:border-[var(--color-violet)]/40 hover:bg-[var(--color-violet)]/20 transition-colors cursor-pointer group">
                                 <Link href="/lab/new?template=sleep" className="block">
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="h-10 w-10 flex items-center justify-center bg-[var(--color-violet)]/15 rounded-[var(--radius-button)]"><TrackerIcon value="moon" className="h-5 w-5" /></div>
@@ -179,7 +179,7 @@ export default function LabPage() {
                                             <div className="font-semibold font-display text-[var(--text-primary)] group-hover:text-[var(--color-violet)] transition-colors">
                                                 Sleep Duration → Mood
                                             </div>
-                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">21 days</div>
+                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)]">21 days</div>
                                         </div>
                                     </div>
                                     <p className="text-sm text-[var(--text-secondary)] mt-3">
@@ -188,7 +188,7 @@ export default function LabPage() {
                                 </Link>
                             </Card>
 
-                            <Card className="p-4 paper-lift  border border-[var(--color-border)] hover:border-[var(--color-teal)]/40 hover:bg-[var(--color-teal)]/20 transition-colors cursor-pointer group">
+                            <Card className="p-4 paper-lift hover:border-[var(--color-teal)]/40 hover:bg-[var(--color-teal)]/20 transition-colors cursor-pointer group">
                                 <Link href="/lab/new?template=exercise" className="block">
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="h-10 w-10 flex items-center justify-center bg-[var(--color-teal)]/15 rounded-[var(--radius-button)]"><TrackerIcon value="activity" className="h-5 w-5" /></div>
@@ -196,7 +196,7 @@ export default function LabPage() {
                                             <div className="font-semibold font-display text-[var(--text-primary)] group-hover:text-[var(--color-teal)] transition-colors">
                                                 Exercise → Energy
                                             </div>
-                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">14 days</div>
+                                            <div className="text-[11px] font-medium text-[var(--text-tertiary)]">14 days</div>
                                         </div>
                                     </div>
                                     <p className="text-sm text-[var(--text-secondary)] mt-3">
@@ -216,7 +216,7 @@ export default function LabPage() {
             )}
 
             {/* Correlation Matrix */}
-            <Card className="p-6 paper-lift shadow-[var(--shadow-card)] border border-[var(--color-border)]">
+            <Card className="p-6 paper-lift shadow-[var(--shadow-card)]">
                 <h2 className="text-lg font-semibold font-display text-[var(--text-primary)] mb-1">
                     Correlation overview
                 </h2>
@@ -238,12 +238,12 @@ function ExperimentCard({ experiment }: { experiment: Experiment }) {
     const isEnded = daysLeft < 0;
 
     return (
-        <Card className="p-5 paper-lift  border border-[var(--color-border)] transition-all cursor-pointer group" onClick={() => window.location.href = `/lab/${experiment.id}`}>
+        <Card className="p-5 paper-lift transition-all cursor-pointer group" onClick={() => window.location.href = `/lab/${experiment.id}`}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     {/* Status Badge */}
                     <span className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3",
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold mb-3",
                         statusColors[experiment.status]
                     )}>
                         {statusLabels[experiment.status]}
@@ -267,7 +267,7 @@ function ExperimentCard({ experiment }: { experiment: Experiment }) {
 
                     {/* Hypothesis */}
                     {experiment.hypothesis && (
-                        <p className="text-sm text-[var(--text-tertiary)] italic line-clamp-2 mb-3">
+                        <p className="text-sm text-[var(--text-tertiary)] line-clamp-2 mb-3">
                             &quot;{experiment.hypothesis}&quot;
                         </p>
                     )}

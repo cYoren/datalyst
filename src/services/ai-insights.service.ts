@@ -52,22 +52,7 @@ export async function generateAiInsights(userId: string) {
   }
 
   const request = createInsightRequest(facts, config.modelId);
-  // UTF-8 byte count plus envelope overhead is a conservative token upper bound.
-  // Reserve before invocation, atomically across server instances. Failed calls
-  // retain the reservation because the vendor may already have billed them.
-  const reservation = (Buffer.byteLength(JSON.stringify(request), 'utf8') + 1024) * config.spec.costPerInputTokenUsd +
-    request.maxTokens * config.spec.costPerOutputTokenUsd;
-  const configuredLimit = Number(process.env.AI_DAILY_LIMIT_USD ?? '0.10');
-  const limit = Number.isFinite(configuredLimit) ? Math.min(1, Math.max(0, configuredLimit)) : 0;
-  const day = new Date().toISOString().slice(0, 10);
-  await prisma.aiDailyUsage.upsert({
-    where: { userId_day: { userId, day } }, create: { userId, day }, update: {},
-  });
-  const reserved = await prisma.aiDailyUsage.updateMany({
-    where: { userId, day, reservedUsd: { lte: limit - reservation } },
-    data: { reservedUsd: { increment: reservation } },
-  });
-  if (!reserved.count) throw new InsightAvailabilityError('budget_exceeded', 429);
+  await reserveAiBudget(userId, config, request);
   const policy = new AiExecutionPolicy({
     provider: config.createProvider(), allowlist: { [config.modelId]: config.spec },
     defaultTimeoutMs: 20000, retryOptions: { maxRetries: 0 },
@@ -89,4 +74,25 @@ export async function generateAiInsights(userId: string) {
     return explained;
   }, { timeout: 30000, maxWait: 5000 });
   return { state: 'ready', cached: false, result };
+}
+
+/** Reserve the worst-case cost of one AI call against the user's daily budget, or throw budget_exceeded. */
+export async function reserveAiBudget(userId: string, config: NonNullable<ReturnType<typeof aiConfiguration>>, request: { maxTokens?: number }) {
+  const maxTokens = request.maxTokens ?? 1200;
+  // UTF-8 byte count plus envelope overhead is a conservative token upper bound.
+  // Reserve before invocation, atomically across server instances. Failed calls
+  // retain the reservation because the vendor may already have billed them.
+  const reservation = (Buffer.byteLength(JSON.stringify(request), 'utf8') + 1024) * config.spec.costPerInputTokenUsd +
+    maxTokens * config.spec.costPerOutputTokenUsd;
+  const configuredLimit = Number(process.env.AI_DAILY_LIMIT_USD ?? '0.10');
+  const limit = Number.isFinite(configuredLimit) ? Math.min(1, Math.max(0, configuredLimit)) : 0;
+  const day = new Date().toISOString().slice(0, 10);
+  await prisma.aiDailyUsage.upsert({
+    where: { userId_day: { userId, day } }, create: { userId, day }, update: {},
+  });
+  const reserved = await prisma.aiDailyUsage.updateMany({
+    where: { userId, day, reservedUsd: { lte: limit - reservation } },
+    data: { reservedUsd: { increment: reservation } },
+  });
+  if (!reserved.count) throw new InsightAvailabilityError('budget_exceeded', 429);
 }

@@ -21,7 +21,7 @@ export function Skeleton({ className }: SkeletonProps) {
 // Stat card skeleton (for dashboard stats)
 export function SkeletonStatCard() {
     return (
-        <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+        <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
             <div className="flex items-center gap-3 min-w-0">
                 <Skeleton className="h-10 w-10 shrink-0 rounded-[var(--radius-card)]" />
                 <div className="space-y-2 min-w-0 flex-1">
@@ -36,7 +36,7 @@ export function SkeletonStatCard() {
 // Habit/Protocol card skeleton
 export function SkeletonHabitCard() {
     return (
-        <div className="p-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+        <div className="p-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
             <div className="flex items-start gap-4">
                 <Skeleton className="h-12 w-12 rounded-[var(--radius-card)] flex-shrink-0" />
                 <div className="flex-1 min-w-0 space-y-3">
@@ -56,7 +56,7 @@ export function SkeletonHabitCard() {
 // Insight card skeleton
 export function SkeletonInsightCard() {
     return (
-        <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+        <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
             <div className="space-y-4">
                 <div className="flex items-center gap-2">
                     <Skeleton className="h-5 w-5 rounded" />
@@ -75,7 +75,7 @@ export function SkeletonInsightCard() {
 // Hero insight skeleton
 export function SkeletonHeroInsight() {
     return (
-        <div className="p-8 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+        <div className="p-8 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
             <div className="space-y-4">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-8 w-3/4" />
@@ -108,7 +108,7 @@ export function DashboardSkeleton() {
             </header>
 
             {/* Today's Log Widget Skeleton */}
-            <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+            <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
                 <div className="flex items-center justify-between mb-4">
                     <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-8 w-24 rounded-[var(--radius-card)]" />
@@ -156,13 +156,13 @@ export function DataPageSkeleton() {
             </header>
 
             {/* Chart placeholder */}
-            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
                 <Skeleton className="h-6 w-32 mb-4" />
                 <Skeleton className="h-64 w-full rounded-[var(--radius-card)]" />
             </div>
 
             {/* Table placeholder */}
-            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]">
+            <div className="p-6 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]">
                 <Skeleton className="h-6 w-24 mb-4" />
                 <div className="space-y-3">
                     <Skeleton className="h-10 w-full" />
@@ -193,7 +193,7 @@ export function FormPageSkeleton() {
                 </div>
             </div>
 
-            <div className="p-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)] space-y-4">
+            <div className="p-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] space-y-4">
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-11 w-full rounded-[var(--radius-input)]" />
                 <Skeleton className="h-4 w-28" />

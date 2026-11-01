@@ -42,7 +42,7 @@ const InterventionBanner = ({ assignment }: { assignment: TodayVariable['activeA
             bgColor
         )}>
             <FlaskConical className={cn("h-4 w-4", textColor)} />
-            <span className={cn("text-xs font-bold uppercase tracking-wide", textColor)}>
+            <span className={cn("text-xs font-bold", textColor)}>
                 {label}
             </span>
         </div>
@@ -168,10 +168,10 @@ const VariableItem = React.memo(function VariableItem({
     const numericValid = Number.isFinite(parsedNumeric);
 
     const chip = (selected: boolean) => cn(
-        "min-h-[44px] min-w-0 rounded-[var(--radius-button)] border font-mono text-sm transition-colors disabled:opacity-60",
+        "min-h-[44px] min-w-0 rounded-[var(--radius-button)] text-sm font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] disabled:opacity-60",
         selected
-            ? "bg-[var(--color-success)] text-[var(--color-on-accent)] border-[var(--color-success)]"
-            : "bg-[var(--color-bg-card)] border-[var(--color-control-border)] text-[var(--text-primary)] hover:border-[var(--color-text-primary)]"
+            ? "bg-[var(--color-success)] text-[var(--color-on-accent)]"
+            : "bg-[var(--color-control-bg-hover)] text-[var(--text-primary)] hover:bg-[#2e3037]"
     );
 
     return (
@@ -179,10 +179,10 @@ const VariableItem = React.memo(function VariableItem({
             className={cn(
                 "rounded-[var(--radius-card)] p-3 transition-colors duration-300",
                 hasActiveExperiment
-                    ? "ring-2 ring-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 border border-[var(--color-accent)]/20"
+                    ? "bg-[var(--color-accent-light)]"
                     : isLogged
-                        ? "bg-[var(--color-success)]/5 border border-[var(--color-success)]/20"
-                        : "bg-[var(--color-bg-subtle)] border border-transparent"
+                        ? "bg-[var(--color-success)]/10"
+                        : "bg-[var(--color-bg-subtle)]"
             )}
         >
             {hasActiveExperiment && <InterventionBanner assignment={variable.activeAssignment} />}
@@ -221,7 +221,7 @@ const VariableItem = React.memo(function VariableItem({
             </div>
 
             {showAdvanced && (
-                <div className="mb-3 space-y-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+                <div className="mb-3 space-y-3 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                         <label className="text-xs text-[var(--text-secondary)]">
                             <span className="mb-1 block font-medium">Date</span>
@@ -476,7 +476,7 @@ export const TodaysLogWidget = () => {
     return (
         <Card
             className={cn(
-                "z-20 p-0 overflow-hidden bg-[var(--color-bg-card)] border border-[var(--color-border)] shadow-[var(--shadow-card)] transition-all duration-300 paper-lift",
+                "z-20 p-0 overflow-hidden bg-[var(--color-bg-card)] shadow-[var(--shadow-card)] transition-all duration-300 paper-lift",
                 "rounded-[var(--radius-card)]",
                 hasActiveExperiment && "ring-1 ring-[var(--color-accent)]/20 shadow-[var(--shadow-elevated)]"
             )}
@@ -494,7 +494,7 @@ export const TodaysLogWidget = () => {
                         "p-2 rounded-[var(--radius-button)]",
                         hasActiveExperiment
                             ? "bg-[var(--color-violet)]/15 text-[var(--color-violet)]"
-                            : "bg-[var(--color-bg-app)] text-[var(--color-accent)] border border-[var(--color-border)] "
+                            : "bg-[var(--color-bg-subtle)] text-[var(--color-accent)]"
                     )}>
                         <FlaskConical className="h-5 w-5" />
                     </div>
@@ -514,37 +514,7 @@ export const TodaysLogWidget = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Progress Ring */}
-                    {!isLoading && (
-                        <div className="relative h-10 w-10">
-                            <svg className="h-10 w-10 -rotate-90">
-                                <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="16"
-                                    fill="none"
-                                    stroke="var(--color-bg-subtle)"
-                                    strokeWidth="4"
-                                />
-                                <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="16"
-                                    fill="none"
-                                    stroke={summary.percentage === 100 ? 'var(--color-success)' : 'var(--color-accent)'}
-                                    strokeWidth="4"
-                                    strokeLinecap="round"
-                                    strokeDasharray={`${(summary.logged / summary.total) * 100.5} 100.5`}
-                                    className="transition-all duration-500"
-                                />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--text-primary)]">
-                                {allDone
-                                    ? <Check className="h-4 w-4 text-[var(--color-success)]" aria-label="All done" />
-                                    : `${Math.min(100, Math.round((summary.logged / summary.total) * 100))}%`}
-                            </span>
-                        </div>
-                    )}
+                    {!isLoading && allDone && <Check className="h-5 w-5 text-[var(--color-success)]" aria-label="All done" />}
 
                     {isCollapsed ? (
                         <ChevronDown className="h-5 w-5 text-[var(--text-tertiary)]" />
@@ -558,7 +528,7 @@ export const TodaysLogWidget = () => {
             {!isCollapsed && (
                 <div className="px-4 pb-4">
                     {pendingSync > 0 && (
-                        <p className="mb-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] px-3 py-2 text-xs text-[var(--text-secondary)]" role="status" aria-live="polite">
+                        <p className="mb-3 rounded-[var(--radius-card)] bg-[var(--color-bg-subtle)] px-3 py-2 text-xs text-[var(--text-secondary)]" role="status" aria-live="polite">
                             You are offline. {pendingSync} check-in{pendingSync === 1 ? '' : 's'} saved on this phone and will sync when you reconnect.
                         </p>
                     )}

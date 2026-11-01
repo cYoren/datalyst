@@ -50,7 +50,7 @@ export function HealthImportControl({ hideWhenUnavailable = false }: { hideWhenU
     if (source === null) {
         if (hideWhenUnavailable) return null;
         return (
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-subtle)] p-4">
+            <div className="rounded-xl bg-[var(--color-bg-subtle)] p-4">
                 <p className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                     <HeartPulse className="h-4 w-4 text-[var(--color-accent)]" />
                     Apple Health and Health Connect
@@ -111,7 +111,7 @@ export function HealthImportControl({ hideWhenUnavailable = false }: { hideWhenU
     };
 
     return (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-subtle)] p-4 space-y-3">
+        <div className="rounded-xl bg-[var(--color-bg-subtle)] p-4 space-y-3">
             <div>
                 <p className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                     <HeartPulse className="h-4 w-4 text-[var(--color-accent)]" />
@@ -153,7 +153,7 @@ export function HealthImportControl({ hideWhenUnavailable = false }: { hideWhenU
             </div>
 
             {confirmDisconnect && (
-                <div className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] p-3">
+                <div className="space-y-3 rounded-lg bg-[var(--color-bg-card)] p-3">
                     <p className="text-sm text-[var(--text-secondary)]">
                         Stop importing from {name} on this phone?
                     </p>

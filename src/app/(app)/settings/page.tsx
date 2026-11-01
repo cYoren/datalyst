@@ -12,6 +12,7 @@ import { HealthImportControl } from '@/components/ui/HealthImportControl';
 import { clearWidget } from '@/lib/widget';
 import { ApiKeysCard } from '@/components/settings/ApiKeysCard';
 import { CloudCard } from '@/components/settings/CloudCard';
+import { ConnectAiCard } from '@/components/settings/ConnectAiCard';
 
 const TIMEZONES = ['UTC', 'America/Sao_Paulo', 'Europe/Lisbon', 'Europe/London', 'America/New_York'];
 const LOCALES = ['en-US', 'pt-BR', 'es-ES'];
@@ -157,8 +158,8 @@ export default function SettingsPage() {
         return (
             <div className="space-y-6 pb-20">
                 <div className="h-8 w-48 rounded bg-[var(--color-bg-subtle)]" />
-                <div className="h-40 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]" />
-                <div className="h-40 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] border border-[var(--color-border)]" />
+                <div className="h-40 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]" />
+                <div className="h-40 rounded-[var(--radius-card)] bg-[var(--color-bg-card)]" />
             </div>
         );
     }
@@ -173,7 +174,6 @@ export default function SettingsPage() {
 
     return (
         <div className="space-y-8 pb-20">
-            <AiInsightsPanel settings />
             <header className="space-y-2">
                 <h1 className="text-3xl sm:text-[2.6rem] leading-[1.05] font-semibold text-[var(--text-primary)]">Settings</h1>
                 <p className="text-[var(--text-secondary)]">
@@ -184,9 +184,13 @@ export default function SettingsPage() {
                 )}
             </header>
 
+            <ConnectAiCard />
+
             <CloudCard onExport={handleExport} />
 
-            <Card className="p-6 space-y-5 paper-lift  border border-[var(--color-border)]">
+            <AiInsightsPanel settings />
+
+            <Card className="p-6 space-y-5 paper-lift">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">Profile</h2>
                     <p className="text-sm text-[var(--text-tertiary)]">
@@ -247,7 +251,7 @@ export default function SettingsPage() {
                 <HealthImportControl />
             </div>
 
-            <Card className="p-6 space-y-4 paper-lift  border border-[var(--color-border)] mt-6">
+            <Card className="p-6 space-y-4 paper-lift mt-6">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">Privacy and consent</h2>
                     <p className="text-sm text-[var(--text-tertiary)]">
@@ -270,7 +274,7 @@ export default function SettingsPage() {
                 </Button>
             </Card>
 
-            <Card className="p-6 space-y-4 paper-lift  border border-[var(--color-border)] mt-6">
+            <Card className="p-6 space-y-4 paper-lift mt-6">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">Export and import</h2>
                     <p className="text-sm text-[var(--text-tertiary)]">
@@ -297,7 +301,7 @@ export default function SettingsPage() {
 
             <ApiKeysCard />
 
-            <Card className="p-6 space-y-4 paper-lift  border border-[var(--color-border)] mt-6">
+            <Card className="p-6 space-y-4 paper-lift mt-6">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">Archive all trackers</h2>
                     <p className="text-sm text-[var(--text-tertiary)]">

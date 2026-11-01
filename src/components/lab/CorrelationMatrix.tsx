@@ -104,7 +104,7 @@ export default function CorrelationMatrix({ onCellClick }: CorrelationMatrixProp
             <table className="w-full border-collapse">
                 <thead>
                     <tr>
-                        <th className="p-3 text-left text-xs font-bold text-[var(--color-text-tertiary)] uppercase tracking-wider w-32 min-w-[120px]">Variable</th>
+                        <th className="p-3 text-left text-xs font-bold text-[var(--color-text-tertiary)] w-32 min-w-[120px]">Variable</th>
                         {data.variables.map((variable) => (
                             <th
                                 key={variable.id}

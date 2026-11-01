@@ -27,7 +27,7 @@ export function ReminderControl() {
     };
 
     return (
-        <div className="rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] p-4">
+        <div className="rounded-[var(--radius-card)] bg-[var(--color-bg-subtle)] p-4">
             <div className="flex items-center justify-between gap-3">
                 <label htmlFor="reminder-toggle" className="flex items-center gap-3 text-sm font-medium text-[var(--text-primary)]">
                     <Bell className="h-4 w-4 text-[var(--color-accent)]" />
@@ -49,7 +49,7 @@ export function ReminderControl() {
                         type="time"
                         value={setting.time}
                         onChange={(e) => e.target.value && void apply({ ...setting, time: e.target.value })}
-                        className="h-11 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)] px-3 text-base text-[var(--text-primary)]"
+                        className="h-11 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] px-3 text-base text-[var(--text-primary)]"
                     />
                 </div>
             )}

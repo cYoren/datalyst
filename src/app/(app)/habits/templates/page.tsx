@@ -173,8 +173,8 @@ export default function TemplateLibraryPage() {
             {/* Bundles Section */}
             {!query && (
                 <section className="space-y-3">
-                    <h2 className="text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                        Tracker Bundles
+                    <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                        Tracker bundles
                     </h2>
                     <p className="text-sm text-[var(--text-secondary)]">
                         Sets of 2-3 trackers designed to reveal correlations together.
@@ -191,14 +191,14 @@ export default function TemplateLibraryPage() {
                                         <h3 className="font-semibold text-[var(--text-primary)]">{bundle.name}</h3>
                                     </div>
                                     <p className="text-sm text-[var(--text-secondary)]">{bundle.description}</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                    <div className="flex flex-wrap gap-x-4 gap-y-1">
                                         {protocols.map(p => (
-                                            <span key={p!.id} className="text-xs bg-[var(--color-bg-subtle)] text-[var(--text-secondary)] px-2 py-0.5 rounded-full">
+                                            <span key={p!.id} className="text-sm text-[var(--text-secondary)]">
                                                 <TrackerIcon value={p!.icon} className="inline h-3.5 w-3.5 -mt-0.5 mr-1" />{p!.name}
                                             </span>
                                         ))}
                                     </div>
-                                    <p className="text-xs text-[var(--text-tertiary)] italic">{bundle.whyItCorrelates}</p>
+                                    <p className="text-xs text-[var(--text-tertiary)]">{bundle.whyItCorrelates}</p>
                                 </Card>
                             );
                         })}
@@ -208,8 +208,8 @@ export default function TemplateLibraryPage() {
 
             {/* Individual Templates */}
             <section className="space-y-3">
-                <h2 className="text-sm font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
-                    {query ? `Results (${filtered.length})` : 'All Templates'}
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                    {query ? `Results (${filtered.length})` : 'All templates'}
                 </h2>
 
                 {isLoading ? (

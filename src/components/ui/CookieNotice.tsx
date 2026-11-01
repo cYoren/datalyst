@@ -28,7 +28,7 @@ export function CookieNotice() {
 
     return (
         <div className="px-3 py-4 sm:fixed sm:inset-x-0 sm:bottom-4 sm:z-50 sm:px-4">
-            <div className="max-w-3xl mx-auto rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 shadow-[var(--shadow-elevated)]">
+            <div className="max-w-3xl mx-auto rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-4 shadow-[var(--shadow-elevated)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <p className="min-w-0 text-sm leading-6 text-[var(--text-secondary)]">
                         We use essential cookies to keep you signed in and secure your session.

@@ -363,7 +363,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
             </div>
 
             {dateFilter && contextMessage && (
-                <div className="rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] px-3 py-2 text-xs text-[var(--text-secondary)]" role="status" aria-live="polite">
+                <div className="rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] px-3 py-2 text-xs text-[var(--text-secondary)]" role="status" aria-live="polite">
                     {contextMessage}
                 </div>
             )}
@@ -396,7 +396,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
                 {chartSubvariables.map((sub: DashboardSubvariable) => (
                     <Card
                         key={sub.id}
-                        className="p-6 paper-lift shadow-[var(--shadow-card)] border border-[var(--color-border)]"
+                        className="p-6 paper-lift shadow-[var(--shadow-card)]"
                     >
                         <h3 className="text-lg font-semibold mb-6 text-[var(--text-primary)] font-display flex items-center gap-2">
                             {sub.name}
@@ -488,7 +488,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
 
             {/* Data Table */}
             {isMobileView && !shouldRenderHistoryTable ? (
-                <Card className="p-4 border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+                <Card className="p-4 bg-[var(--color-bg-card)]">
                     <p className="text-sm text-[var(--text-secondary)]">Detailed history is available when needed.</p>
                     <button
                         type="button"
@@ -499,7 +499,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
                     </button>
                 </Card>
             ) : (
-                <Card className="overflow-hidden shadow-[var(--shadow-card)] paper-lift border border-[var(--color-border)]">
+                <Card className="overflow-hidden shadow-[var(--shadow-card)] paper-lift">
                     <div className="p-6 border-b border-[var(--color-border)] flex justify-between items-center">
                         <h3 className="text-lg font-semibold text-[var(--text-primary)] font-display">Detailed History</h3>
                         <Button variant="outline" size="sm" onClick={handleExportCSV}>
@@ -509,7 +509,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-[var(--text-tertiary)] uppercase bg-[var(--color-bg-subtle)] font-display">
+                            <thead className="text-xs text-[var(--text-tertiary)] bg-[var(--color-bg-subtle)] font-display">
                                 <tr>
                                     <th className="px-6 py-3 font-medium">Date</th>
                                     {selectedHabit.subvariables.map((sub: DashboardSubvariable) => (

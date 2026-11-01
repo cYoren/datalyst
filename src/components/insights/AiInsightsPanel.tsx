@@ -45,7 +45,7 @@ export function AiInsightsPanel({ settings = false }: { settings?: boolean }) {
     } catch { setMessage('Unable to load AI insights.'); }
     finally { setBusy(false); }
   }
-  return <section aria-label="AI insights" className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 space-y-4">
+  return <section aria-label="AI insights" className="rounded-2xl bg-[var(--color-bg-card)] p-5 space-y-4">
     <h2 className="text-lg font-semibold">AI insights</h2>
     {settings ? <>
       <p className="text-sm text-[var(--text-secondary)]">Opt in to send a small evidence packet to {provider.name ? <>the AI provider, <strong>{provider.name}</strong></> : 'the configured AI provider'}: correlation coefficients, sample sizes, methods and significance values. Names, journal text and raw check-ins stay in Datalyst. The provider processes the packet under its own privacy policy. Revoking consent stops future requests and removes cached AI results; it cannot recall a packet already sent.</p>

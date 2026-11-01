@@ -18,7 +18,7 @@ export default function ExperimentProofs({ id }: { id: string }) {
         } catch { setError('Proofs could not be refreshed. Please try again.'); }
         finally { setBusy(false); }
     }
-    return <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 space-y-3">
+    return <section className="rounded-2xl bg-[var(--color-bg-card)] p-5 space-y-3">
         <h2 className="font-semibold text-[var(--color-text-primary)]">Research record</h2>
         <p className="text-sm text-[var(--color-text-secondary)]">Your plan is frozen when the experiment starts, and observations are frozen at completion. Signatures verify content integrity; they do not validate the finding.</p>
         {data?.records?.map(record => <p key={record.kind} className="text-sm text-[var(--color-text-secondary)]">

@@ -135,7 +135,7 @@ export default function AboutPage() {
             </Card>
 
             <div className="text-center pt-6">
-                <p className="text-[var(--text-tertiary)] italic">
+                <p className="text-[var(--text-tertiary)]">
                     &quot;The goal is not to track more. It&apos;s to understand more.&quot;
                 </p>
                 <p className="text-[var(--text-tertiary)] text-xs mt-4">

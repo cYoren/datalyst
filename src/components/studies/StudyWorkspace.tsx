@@ -6,7 +6,7 @@ import useSWR from 'swr';
 import { exampleProtocol, type StudyProtocol } from '@/studies/protocol';
 import type { studyEvidence } from '@/studies/service';
 
-export const panel = 'border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 space-y-4 rounded-[var(--radius-card)]';
+export const panel = ' bg-[var(--color-bg-card)] p-5 space-y-4 rounded-[var(--radius-card)]';
 export const control = 'border border-[var(--color-control-border,var(--color-border))] bg-[var(--color-control-bg)] text-[var(--text-primary)] rounded-[var(--radius-input)] p-3 w-full';
 export const action = 'inline-flex items-center justify-center border border-[var(--color-border-hover)] bg-[var(--color-bg-subtle)] px-4 py-3 text-sm font-medium rounded-[var(--radius-button)] hover:bg-[var(--color-control-bg-hover)] disabled:opacity-50';
 

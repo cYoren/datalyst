@@ -44,7 +44,7 @@ export function aiConfiguration(env: Record<string, string | undefined> = proces
         try { host = new URL(baseUrl).host; } catch { /* keep raw */ }
         const providerName = env.AI_PROVIDER_NAME?.trim() || host;
         const spec: AiModelSpec = {
-            modelId: model, provider: kind, displayName: model,
+            modelId: model, provider: providerName, displayName: model,
             contextWindow: 128000, maxOutputTokens: 4096,
             costPerInputTokenUsd: price(env.AI_INPUT_USD_PER_MTOK, 1) / 1e6,
             costPerOutputTokenUsd: price(env.AI_OUTPUT_USD_PER_MTOK, 5) / 1e6,

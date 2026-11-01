@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { useOrigin } from '@/lib/useOrigin';
 
 type ApiKey = {
     id: string;
@@ -14,13 +15,13 @@ type ApiKey = {
     lastUsedAt: string | null;
 };
 
-const MCP_URL = 'https://www.datalyst.one/api/mcp';
 
 function formatDate(value: string | null) {
     return value ? new Date(value).toLocaleDateString() : 'Never';
 }
 
 export function ApiKeysCard() {
+    const origin = useOrigin();
     const [keys, setKeys] = useState<ApiKey[]>([]);
     const [name, setName] = useState('');
     const [canWrite, setCanWrite] = useState(false);
@@ -82,12 +83,12 @@ export function ApiKeysCard() {
     };
 
     return (
-        <Card className="p-6 space-y-4 paper-lift shadow-sm border border-[var(--color-border)] mt-6">
+        <Card className="p-6 space-y-4 paper-lift mt-6">
             <div>
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">API keys and agents</h2>
                 <p className="text-sm text-[var(--text-tertiary)]">
                     Let Claude, ChatGPT, Cursor or your own scripts read your trackers and log Check-ins through the Datalyst MCP server at{' '}
-                    <code className="break-all">{MCP_URL}</code>.{' '}
+                    <code className="break-all">{`${origin}/api/mcp`}</code>.{' '}
                     <a href="/docs/agent-api#connect-an-agent" className="text-[var(--color-accent)] underline-offset-4 hover:underline">
                         Setup guide
                     </a>

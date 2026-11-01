@@ -153,19 +153,19 @@ export function ActivityCalendar({ className, onDayClick }: ActivityCalendarProp
     }, [days]);
 
     return (
-        <section className={cn('rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 sm:p-6', className)}>
+        <section className={cn('rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-4 sm:p-6', className)}>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)]">Check-in activity</h2>
                     <p className="text-sm text-[var(--text-secondary)]">Your day-by-day consistency at a glance.</p>
                 </div>
 
-                <div className="inline-flex rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] p-1">
+                <div className="inline-flex rounded-[var(--radius-button)] bg-[var(--color-bg-subtle)] p-1">
                     <button
                         type="button"
                         onClick={() => setWeeks(26)}
                         className={cn(
-                            'min-h-9 px-3 font-mono text-[0.68rem] uppercase tracking-[0.1em] rounded-[var(--radius-button)] transition-colors',
+                            'min-h-9 px-3 text-xs font-medium rounded-[var(--radius-button)] transition-colors',
                             weeks === 26 ? 'bg-[var(--color-text-primary)] text-[var(--color-on-accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         )}
                         aria-pressed={weeks === 26}
@@ -176,7 +176,7 @@ export function ActivityCalendar({ className, onDayClick }: ActivityCalendarProp
                         type="button"
                         onClick={() => setWeeks(52)}
                         className={cn(
-                            'min-h-9 px-3 font-mono text-[0.68rem] uppercase tracking-[0.1em] rounded-[var(--radius-button)] transition-colors',
+                            'min-h-9 px-3 text-xs font-medium rounded-[var(--radius-button)] transition-colors',
                             weeks === 52 ? 'bg-[var(--color-text-primary)] text-[var(--color-on-accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         )}
                         aria-pressed={weeks === 52}
@@ -189,20 +189,20 @@ export function ActivityCalendar({ className, onDayClick }: ActivityCalendarProp
             <div className="mb-4 grid grid-cols-3 gap-3">
                 <div className="rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] p-3">
                     <p className="label-mono">Active Days</p>
-                    <p className="mt-1 font-mono text-base text-[var(--text-primary)] tabular-nums">{stats.activeDays}</p>
+                    <p className="mt-1 text-base font-semibold text-[var(--text-primary)] tabular-nums">{stats.activeDays}</p>
                 </div>
                 <div className="rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] p-3">
                     <p className="label-mono">Current Streak</p>
-                    <p className="mt-1 font-mono text-base text-[var(--text-primary)] tabular-nums">{stats.current}</p>
+                    <p className="mt-1 text-base font-semibold text-[var(--text-primary)] tabular-nums">{stats.current}</p>
                 </div>
                 <div className="rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] p-3">
                     <p className="label-mono">Best Streak</p>
-                    <p className="mt-1 font-mono text-base text-[var(--text-primary)] tabular-nums">{stats.best}</p>
+                    <p className="mt-1 text-base font-semibold text-[var(--text-primary)] tabular-nums">{stats.best}</p>
                 </div>
             </div>
 
             {showSwipeHint && !isLoading && (
-                <div className="mb-3 flex items-center justify-between rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] px-3 py-2 sm:hidden">
+                <div className="mb-3 flex items-center justify-between rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] px-3 py-2 sm:hidden">
                     <p className="text-xs text-[var(--text-secondary)]">Swipe to view earlier weeks</p>
                     <button
                         type="button"
@@ -288,7 +288,7 @@ export function ActivityCalendar({ className, onDayClick }: ActivityCalendarProp
             )}
 
             {selectedDay && (
-                <div className="mt-3 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-bg-subtle)] p-3" role="region" aria-label="Selected day details">
+                <div className="mt-3 rounded-[var(--radius-input)] bg-[var(--color-bg-subtle)] p-3" role="region" aria-label="Selected day details">
                     <p className="text-xs font-semibold text-[var(--text-primary)]">{format(parseISO(selectedDay.date), "EEEE, MMM d")}</p>
                     <p className="mt-1 text-xs text-[var(--text-secondary)]">
                         {selectedDay.completedTrackers}/{selectedDay.scheduledTrackers} trackers completed ({selectedDay.completionPct}%)

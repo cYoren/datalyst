@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   // Agent endpoints authenticate with API keys, not the session cookie, so the
   // login redirect must not apply to them.
-  const isAgentApi = pathname.startsWith('/api/v1/') || pathname === '/api/mcp';
+  const isAgentApi = pathname.startsWith('/api/v1/') || pathname === '/api/mcp' || pathname.startsWith('/api/mcp/');
   if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAgentApi) {
     return NextResponse.next();
   }

@@ -44,7 +44,7 @@ export default function DataPage() {
                         </p>
 
                         {/* Mock Graph Preview */}
-                        <div className="mt-8 p-6 bg-[var(--color-bg-page)] rounded-[var(--radius-card)] border border-[var(--color-border)] opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                        <div className="mt-8 p-6 bg-[var(--color-bg-page)] rounded-[var(--radius-card)] opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
                             <div className="flex items-end justify-between h-32 gap-2">
                                 {[40, 70, 45, 90, 60, 80, 95].map((h, i) => (
                                     <div key={i} className="w-full bg-[var(--color-accent)] rounded-t-sm" style={{ height: `${h}%` }}></div>

@@ -64,7 +64,7 @@ export default function ActiveTrialWidget() {
             <div className="p-6 sm:p-8 space-y-6">
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[var(--color-accent)] text-xs font-bold uppercase tracking-wider mb-2">
+                        <div className="flex items-center gap-2 text-[var(--color-accent)] text-xs font-bold mb-2">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent)] opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-accent)]"></span>
@@ -92,7 +92,7 @@ export default function ActiveTrialWidget() {
                     </div>
 
                     <div className="flex-1 text-center sm:text-left space-y-1">
-                        <div className="text-xs font-medium text-[var(--text-tertiary)] uppercase tracking-tight">
+                        <div className="text-xs font-medium text-[var(--text-tertiary)]">
                             {isWashout ? 'Adaptation Period' : "Today's Intervention"}
                         </div>
                         <div className="text-2xl font-bold text-[var(--text-primary)] font-display">
@@ -151,7 +151,7 @@ export default function ActiveTrialWidget() {
                             {Math.round(progressPct)}% Complete
                         </div>
                     </div>
-                    <div className="h-2 w-full bg-[var(--color-bg-subtle)] rounded-full overflow-hidden shadow-inner border border-[var(--color-border)]">
+                    <div className="h-2 w-full bg-[var(--color-bg-subtle)] rounded-full overflow-hidden shadow-inner">
                         <div
                             className="h-full bg-[var(--color-accent)] transition-all duration-700 ease-out"
                             style={{ width: `${progressPct}%` }}

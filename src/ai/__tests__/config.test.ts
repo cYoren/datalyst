@@ -17,6 +17,12 @@ describe('aiConfiguration', () => {
         expect(c.spec.costPerInputTokenUsd).toBe(0);
         expect(c.createProvider()).toBeInstanceOf(OpenAICompatibleProvider);
     });
+    it('provider name matches the model spec, so the execution policy accepts it', () => {
+        for (const env of [{ AI_MODEL: 'm', AI_API_KEY: 'k' }, { AI_MODEL: 'm', AI_API_KEY: 'k', AI_PROVIDER: 'anthropic', AI_PROVIDER_NAME: 'Claude' }, { DEEPSEEK_API_KEY: 'k' }]) {
+            const c = aiConfiguration(env)!;
+            expect(c.createProvider().name).toBe(c.spec.provider);
+        }
+    });
     it('supports Anthropic and names known privacy policies', () => {
         const c = aiConfiguration({ AI_MODEL: 'claude-haiku-4-5', AI_API_KEY: 'k', AI_PROVIDER: 'anthropic' })!;
         expect(c.createProvider()).toBeInstanceOf(AnthropicProvider);

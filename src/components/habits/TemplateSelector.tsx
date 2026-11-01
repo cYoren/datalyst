@@ -212,7 +212,7 @@ export const TemplateSelector = ({ onSelect, selectedTemplate }: TemplateSelecto
                         <div className="py-2">
                             {hasStarter && (
                                 <>
-                                    <div className="px-4 py-2 text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">
+                                    <div className="px-4 py-2 text-xs font-semibold text-[var(--text-tertiary)]">
                                         Starter Templates
                                     </div>
                                     {filteredStarter.map(renderTemplateRow)}
@@ -221,7 +221,7 @@ export const TemplateSelector = ({ onSelect, selectedTemplate }: TemplateSelecto
                             {hasDb && (
                                 <>
                                     <div className={cn(
-                                        "px-4 py-2 text-xs font-semibold text-[var(--text-tertiary)] uppercase tracking-wider",
+                                        "px-4 py-2 text-xs font-semibold text-[var(--text-tertiary)]",
                                         hasStarter && "border-t border-[var(--color-border)] mt-1 pt-3"
                                     )}>
                                         My Templates

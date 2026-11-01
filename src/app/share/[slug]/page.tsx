@@ -166,7 +166,7 @@ export default async function SharePage({ params }: PageProps) {
                 <Card className="p-6 space-y-6">
                     {/* Effect Size */}
                     <div className="text-center space-y-2">
-                        <div className="text-sm font-medium text-[var(--color-text-secondary)] uppercase tracking-wider">
+                        <div className="text-sm font-medium text-[var(--color-text-secondary)]">
                             Effect Size (Cohen&apos;s d)
                         </div>
                         <div className="flex items-center justify-center gap-3">

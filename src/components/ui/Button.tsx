@@ -8,21 +8,21 @@ import { Loader2 } from "lucide-react"
 import { triggerSelectionHaptic } from "@/lib/haptics"
 
 const buttonVariants = cva(
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-button)] font-mono text-xs font-medium uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-app)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-button)] text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-app)] disabled:pointer-events-none disabled:opacity-50 active:translate-y-px",
     {
         variants: {
             variant: {
                 // Solid light primary, as on the landing page.
-                default: "border border-[var(--color-text-primary)] bg-[var(--color-text-primary)] text-[var(--color-on-accent)] hover:bg-[var(--color-bg-card)]",
+                default: "bg-[var(--color-text-primary)] text-[var(--color-on-accent)] hover:bg-white",
                 destructive:
-                    "border border-[var(--color-error)] bg-[var(--color-error)] text-[var(--color-on-accent)] hover:brightness-110",
+                    "bg-[var(--color-error)] text-[var(--color-on-accent)] hover:brightness-110",
                 outline:
-                    "border border-[var(--color-border-hover)] bg-transparent text-[var(--color-text-primary)] hover:border-[var(--color-text-primary)] hover:bg-[var(--color-bg-subtle)]",
+                    "bg-[var(--color-bg-subtle)] text-[var(--color-text-primary)] hover:bg-[var(--color-control-bg-hover)]",
                 secondary:
-                    "border border-[var(--color-accent)]/45 bg-[var(--color-accent-light)] text-[var(--color-accent)] hover:border-[var(--color-accent)]",
+                    "bg-[var(--color-accent-light)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)]",
                 ghost: "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-subtle)] hover:text-[var(--color-text-primary)]",
-                link: "font-sans text-sm normal-case tracking-normal text-[var(--color-accent)] underline-offset-4 hover:underline",
-                data: "border border-[var(--color-border-hover)] bg-[var(--color-bg-subtle)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]",
+                link: "text-[var(--color-accent)] underline-offset-4 hover:underline",
+                data: "bg-[var(--color-bg-subtle)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]",
             },
             size: {
                 default: "h-11 px-5",

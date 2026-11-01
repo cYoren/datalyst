@@ -14,9 +14,12 @@ import { checkAgentRateLimit } from '@/lib/agent-rate-limit';
 import { ServiceError } from '@/lib/error-utils';
 import { experimentFormSchema, quickEntrySchema } from '@/lib/validations';
 import { HabitService } from '@/services/habit.service';
+import { TRACKER_ICONS } from '@/components/ui/TrackerIcon';
 import { EntryService } from '@/services/entry.service';
 import { StatsService } from '@/services/stats.service';
 import { getTodayLog } from '@/services/today.service';
+import { parseQuickLog } from '@/services/quick-log.service';
+import { InsightAvailabilityError } from '@/services/ai-insights.service';
 import { createExperiment, getExperimentResults, listExperiments } from '@/services/experiment.service';
 import { buildUserExport } from '@/services/export.service';
 import { createStudy, listStudies, studyEvidence } from '@/studies/service';
@@ -104,12 +107,58 @@ const tools: Tool[] = [
         },
     }),
     tool({
+        name: 'create_tracker',
+        title: 'Create a tracker',
+        description: 'Create a new tracker when the user wants to start tracking something that list_trackers does not have yet (for example "track my headaches"). Prefer 1 to 3 variables. Then use log_checkin with the returned ids. Icon keys: ' + Object.keys(TRACKER_ICONS).join(', ') + '. Requires a key with the write scope.',
+        scope: 'write',
+        input: z.object({
+            name: z.string().min(1).max(100).describe('Tracker name, e.g. "Headache"'),
+            icon: z.enum(Object.keys(TRACKER_ICONS) as [string, ...string[]]).optional().describe('Icon key'),
+            description: z.string().max(500).optional(),
+            variables: z.array(z.object({
+                name: z.string().min(1).max(100),
+                type: z.enum(['NUMERIC', 'SCALE_0_10', 'BOOLEAN']),
+                unit: z.string().max(50).optional(),
+                goalDirection: z.enum(['HIGHER_BETTER', 'LOWER_BETTER', 'NEUTRAL']).optional(),
+            })).min(1).max(5),
+        }),
+        run: async (userId, args) => {
+            const habit = await HabitService.createHabit(userId, {
+                name: args.name, description: args.description, icon: args.icon ?? 'target', color: '#7c6cf2',
+                scheduleType: 'DAILY', scheduleDays: [], timeBlock: 'ANYTIME',
+                subvariables: args.variables.map((v, order) => ({ ...v, goalDirection: v.goalDirection ?? 'NEUTRAL', order })),
+            });
+            const full = await HabitService.getHabitById(userId, habit.id);
+            return {
+                id: habit.id, name: habit.name,
+                variables: (full?.subvariables ?? []).map((v) => ({ id: v.id, name: v.name, type: v.type, unit: v.unit })),
+            };
+        },
+    }),
+    tool({
         name: 'get_today',
         title: 'Get Check-in status',
         description: 'Check-in status for one day: every variable scheduled that day, with its logged value if any, plus logged/total counts. Pass the user\'s local calendar date (the server clock is UTC and must not pick the day).',
         scope: 'read',
         input: z.object({ date: isoDate.describe('The user\'s local date, YYYY-MM-DD') }),
         run: (userId, { date }) => getTodayLog(userId, date),
+    }),
+    tool({
+        name: 'parse_log',
+        title: 'Read a plain-language log',
+        description: 'Turn a short sentence like "slept 6h, headache 7, no coffee" into proposed values for the user\'s own trackers, using the server\'s configured AI. Nothing is saved: confirm with the user, then call log_checkin for each proposal. Needs AI insights turned on in Settings.',
+        scope: 'read',
+        input: z.object({ text: z.string().trim().min(2).max(500).describe('What the user said') }),
+        run: async (userId, { text }) => {
+            try {
+                return await parseQuickLog(userId, text);
+            } catch (error) {
+                if (error instanceof InsightAvailabilityError) {
+                    throw new ToolError(error.state === 'consent_required' ? 'Turn on AI insights in Datalyst Settings first.' : `Plain-language logging is unavailable (${error.state}).`);
+                }
+                throw error;
+            }
+        },
     }),
     tool({
         name: 'log_checkin',

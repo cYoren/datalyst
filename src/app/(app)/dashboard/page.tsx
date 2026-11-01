@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { HabitCard } from '@/components/habits/HabitCard';
 import ActivityCalendar from '@/components/dashboard/ActivityCalendar';
 import { TodaysLogWidget } from '@/components/dashboard/TodaysLogWidget';
+import { QuickLogBar } from '@/components/dashboard/QuickLogBar';
 import { TodayVsAverage } from '@/components/dashboard/TodayVsAverage';
 import { ProtocolCommandCenter } from '@/components/dashboard/ProtocolCommandCenter';
 import AdHocLogModal from '@/components/dashboard/AdHocLogModal';
@@ -38,7 +39,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     return (
         <span className="flex flex-col gap-1">
             <span className="label-mono">{label}</span>
-            <span className="font-mono text-sm tabular-nums text-[var(--text-primary)]">{value}</span>
+            <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">{value}</span>
         </span>
     );
 }
@@ -137,10 +138,10 @@ export default function DashboardPage() {
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-fade-in">
                 <div className="min-w-0">
-                    <p className="label-mono" suppressHydrationWarning>{currentDate}</p>
-                    <h1 className="mt-2 text-3xl sm:text-[2.6rem] leading-[1.05] font-semibold text-[var(--text-primary)] break-words">
+                    <h1 className="text-3xl sm:text-[2.6rem] leading-[1.05] font-semibold text-[var(--text-primary)] break-words">
                         {greeting}, {userName}.
                     </h1>
+                    <p className="mt-2 text-[var(--text-secondary)]" suppressHydrationWarning>{currentDate}</p>
                 </div>
                 <Button
                     onClick={() => window.location.href = '/habits/new'}
@@ -165,9 +166,9 @@ export default function DashboardPage() {
                     </SectionLabel>
 
                     {newInsightText && (
-                        <div className="flex items-center justify-between gap-4 border border-[var(--color-accent)]/45 bg-[var(--color-accent-light)] px-4 py-2 rounded-[var(--radius-card)]">
+                        <div className="flex items-center justify-between gap-4 bg-[var(--color-accent-light)] px-4 py-2 rounded-[var(--radius-card)]">
                             <p className="text-sm text-[var(--text-primary)]">
-                                <span className="label-mono mr-2 text-[var(--color-accent)]">New</span>
+                                <strong className="mr-2 font-semibold text-[var(--color-accent)]">New insight.</strong>
                                 {newInsightText}
                             </p>
                             <button
@@ -181,11 +182,11 @@ export default function DashboardPage() {
                     )}
 
                     {insights?.correlations && insights.correlations.length > 0 ? (
-                        <div className="grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-border)] lg:grid-cols-[1.4fr_1fr]">
+                        <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr]">
                             {/* Top insight */}
                             <button
                                 type="button"
-                                className="group flex flex-col gap-5 bg-[var(--color-bg-card)] p-5 sm:p-7 text-left transition-colors hover:bg-[var(--color-bg-subtle)] lg:row-span-3"
+                                className="group flex flex-col gap-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 sm:p-7 text-left transition-colors hover:bg-[var(--color-bg-subtle)] lg:row-span-3"
                                 onClick={() => handleTestCorrelation(insights.correlations[0])}
                             >
                                 <span className="label-mono flex items-center gap-2 text-[var(--color-accent)]">
@@ -212,7 +213,7 @@ export default function DashboardPage() {
                                 <button
                                     key={i}
                                     type="button"
-                                    className={cn("group flex flex-col gap-3 bg-[var(--color-bg-card)] p-5 text-left transition-colors hover:bg-[var(--color-bg-subtle)]", !showAllInsights && "max-sm:hidden")}
+                                    className={cn("group flex flex-col gap-3 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 text-left transition-colors hover:bg-[var(--color-bg-subtle)]", !showAllInsights && "max-sm:hidden")}
                                     onClick={() => handleTestCorrelation(corr)}
                                 >
                                     <span className="flex items-start justify-between gap-3">
@@ -229,7 +230,7 @@ export default function DashboardPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAllInsights(true)}
-                                    className="label-mono min-h-11 bg-[var(--color-bg-card)] px-5 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:hidden"
+                                    className="label-mono min-h-11 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] px-5 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:hidden"
                                 >
                                     Show {Math.min(insights.correlations.length, 4) - 1} more {Math.min(insights.correlations.length, 4) - 1 === 1 ? 'signal' : 'signals'}
                                 </button>
@@ -275,7 +276,7 @@ export default function DashboardPage() {
 
             {/* 02 Daily Check-in: the one thing a returning user opens the app for. */}
             <section id="daily-checkin" className="scroll-mt-20 space-y-4">
-                {habits.length > 0 && <SectionLabel index={2}>Check-in</SectionLabel>}
+                {habits.length > 0 && <QuickLogBar />}
                 <TodaysLogWidget />
                 {habits.length > 0 && (
                     <div className="flex justify-end">
@@ -296,14 +297,14 @@ export default function DashboardPage() {
             {habits.length > 0 && stats && (
                 <section aria-labelledby="consistency-heading" className="space-y-4">
                     <SectionLabel index={3} id="consistency-heading">Consistency</SectionLabel>
-                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-border)]">
+                    <dl className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
                             { label: 'Days checked in', value: String(stats.totalLoggingDays || 0), tip: "Total unique days you've checked in at least once." },
                             { label: `Today (${stats.dailyProgress?.completed ?? 0}/${stats.dailyProgress?.total ?? 0})`, value: `${stats.dailyProgress?.percentage || 0}%` },
                             { label: 'Weekly completion', value: `${stats.weeklyCompletion || 0}%`, tip: 'Percentage of scheduled trackers checked in this week.' },
                             { label: 'This week', value: `${stats.weeklySummary?.daysActive || 0}/7`, tip: 'Number of days this week you logged at least one entry.' },
                         ].map(item => (
-                            <div key={item.label} className="min-w-0 bg-[var(--color-bg-card)] px-4 py-3">
+                            <div key={item.label} className="min-w-0 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] px-4 py-3">
                                 <dt className="label-mono flex items-center gap-1">
                                     {item.label}
                                     {item.tip && <InfoTooltip className="max-sm:hidden" text={item.tip} />}
@@ -329,9 +330,8 @@ export default function DashboardPage() {
             {/* Trackers List */}
             <div className="space-y-6 animate-slide-up">
                 {habits.length === 0 ? (
-                    <div className="text-center py-12 px-6 bg-[var(--color-bg-card)] rounded-[var(--radius-card)] border border-[var(--color-border)]">
-                        <p className="label-mono mb-4">00 / Get started</p>
-                        <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-3">
+                    <div className="text-center py-12 px-6 bg-[var(--color-bg-card)] rounded-[var(--radius-card)]">
+                                                <h2 className="text-3xl font-semibold text-[var(--text-primary)] mb-3">
                             Start your first tracker
                         </h2>
                         <p className="text-[var(--text-secondary)] mb-8 max-w-sm mx-auto">

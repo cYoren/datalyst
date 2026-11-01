@@ -115,7 +115,7 @@ export default function OnboardingPage() {
 
     return (
         <div className="min-h-dvh bg-[var(--color-bg-page)] sm:flex sm:items-center sm:justify-center sm:p-4">
-            <div className="flex min-h-dvh w-full flex-col bg-[var(--color-bg-card)] px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[var(--radius-card)] sm:border sm:border-[var(--color-border)] sm:p-8 sm:shadow-[var(--shadow-card)]">
+            <div className="flex min-h-dvh w-full flex-col bg-[var(--color-bg-card)] px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:min-h-0 sm:max-w-lg sm:rounded-[var(--radius-card)] sm:p-8 sm:shadow-[var(--shadow-card)]">
                 <div className="mb-6 flex gap-2" aria-hidden>
                     {[1, 2].map(i => (
                         <div key={i} className={`h-1 flex-1 rounded-full ${i === 1 || focus ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-border)]'}`} />
@@ -136,7 +136,7 @@ export default function OnboardingPage() {
                                 <button
                                     key={opt.name}
                                     onClick={() => pickFocus(opt.name)}
-                                    className="flex min-h-[64px] items-center gap-4 rounded-[var(--radius-card)] border-2 border-[var(--color-border)] px-4 text-left transition-all hover:border-[var(--color-accent)] hover:bg-[var(--color-bg-subtle)]"
+                                    className="flex min-h-[64px] items-center gap-4 rounded-[var(--radius-card)] bg-[var(--color-bg-subtle)] px-4 text-left transition-colors hover:ring-1 hover:ring-[var(--color-border-hover)]"
                                 >
                                     <TrackerIcon value={opt.icon} className="h-6 w-6 text-[var(--color-accent)]" />
                                     <span className="flex-1">
@@ -184,9 +184,9 @@ export default function OnboardingPage() {
                                         key={bundle.id}
                                         onClick={() => toggleBundle(bundle.id)}
                                         aria-pressed={isSelected}
-                                        className={`w-full rounded-[var(--radius-card)] border-2 p-4 text-left transition-all ${isSelected
-                                            ? 'border-[var(--color-accent)] bg-[var(--color-accent)]/5'
-                                            : 'border-[var(--color-border)] hover:border-[var(--color-border-hover)]'
+                                        className={`w-full rounded-[var(--radius-card)] p-4 text-left transition-colors ${isSelected
+                                            ? 'bg-[var(--color-bg-subtle)] ring-2 ring-[var(--color-accent)]'
+                                            : 'bg-[var(--color-bg-subtle)] hover:ring-1 hover:ring-[var(--color-border-hover)]'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between gap-3">
@@ -198,9 +198,9 @@ export default function OnboardingPage() {
                                             </span>
                                         </div>
                                         <p className="mt-1 text-sm text-[var(--text-secondary)]">{bundle.description}</p>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                                             {protocols.map(t => t && (
-                                                <span key={t.id} className="rounded-full bg-[var(--color-bg-subtle)] px-2 py-0.5 text-xs text-[var(--text-tertiary)]">
+                                                <span key={t.id} className="text-sm text-[var(--text-secondary)]">
                                                     <TrackerIcon value={t.icon} className="inline h-3.5 w-3.5 -mt-0.5 mr-1" />{t.name}
                                                 </span>
                                             ))}

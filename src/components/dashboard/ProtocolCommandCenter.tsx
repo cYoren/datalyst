@@ -103,8 +103,8 @@ export function ProtocolCommandCenter() {
     const visualConfig = isWashout
         ? {
             icon: 'water',
-            title: 'WASHOUT DAY',
-            subtitle: 'No intervention - let your system reset',
+            title: 'Washout day',
+            subtitle: 'No intervention today. Let your system reset.',
             bgColor: 'bg-[var(--color-bg-card)] border-[var(--color-border)]',
             textColor: 'text-[var(--color-amber)]',
             ringColor: '',
@@ -113,7 +113,7 @@ export function ProtocolCommandCenter() {
         : isIntervention
             ? {
                 icon: 'pill',
-                title: experiment.isBlind ? 'INTERVENTION DAY' : `${currentConditionLabel.toUpperCase()}`,
+                title: experiment.isBlind ? 'Intervention day' : currentConditionLabel,
                 subtitle: `Follow your ${experiment.independent.name} tracker (${currentConditionLabel}) today`,
                 bgColor: 'bg-[var(--color-bg-card)] border-[var(--color-border)]',
                 textColor: 'text-[var(--text-primary)]',
@@ -122,7 +122,7 @@ export function ProtocolCommandCenter() {
             }
             : {
                 icon: 'activity',
-                title: experiment.isBlind ? `VARIANT DAY` : `${currentConditionLabel.toUpperCase()}`,
+                title: experiment.isBlind ? 'Variant day' : currentConditionLabel,
                 subtitle: conditionLabels.length > 2
                     ? `Follow condition: ${currentConditionLabel}`
                     : `Do NOT take ${experiment.independent.name} today`,
@@ -194,7 +194,7 @@ export function ProtocolCommandCenter() {
 
                 {/* Condition Badge */}
                 <div className={cn(
-                    "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
+                    "px-3 py-1 rounded-full text-xs font-bold",
                     visualConfig.badgeColor
                 )}>
                     {conditionLabel}

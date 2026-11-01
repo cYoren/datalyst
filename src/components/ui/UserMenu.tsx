@@ -65,7 +65,7 @@ export function UserMenu({ user, variant = 'desktop' }: UserMenuProps) {
                     <div className="h-7 w-7 rounded-full bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center text-xs font-bold mb-1">
                         {initials}
                     </div>
-                    <span className="font-mono text-[10px] font-medium uppercase tracking-[0.1em]">Profile</span>
+                    <span className="text-[11px] font-medium">Profile</span>
                 </button>
 
                 {isOpen && (

@@ -10,8 +10,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         <div
             ref={ref}
             className={cn(
-                "rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-bg-card)] text-[var(--color-text-primary)] transition-colors",
-                elevated && "border-[var(--color-border-hover)]",
+                "rounded-[var(--radius-card)] bg-[var(--color-bg-card)] text-[var(--color-text-primary)] transition-colors",
+                elevated && "bg-[var(--color-bg-subtle)]",
                 className
             )}
             {...props}
