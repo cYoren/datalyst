@@ -1,0 +1,107 @@
+GOOGLE_PLAY_KEY = "#{ENV['HOME']}/Documents/Coding/.fastlane/google-play-key.json"
+PACKAGE_NAME    = "com.datalyst.app"
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Build iOS app"
+  lane :build do
+    sh("cd .. && npx cap sync ios")
+    sh("cd ../ios && xcodebuild -project App.xcodeproj -scheme App build")
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    api_key = app_store_connect_api_key(
+      key_id:       "Q2YLT79GZD",
+      issuer_id:    ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: "#{ENV['HOME']}/.fastlane/app-store-connect-api-key.p8",
+      in_house:     false
+    )
+    increment_build_number(xcodeproj: "ios/App.xcodeproj")
+    build_app(
+      scheme: "App",
+      project: "ios/App.xcodeproj",
+      export_method: "app-store",
+      output_directory: "./build"
+    )
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build and upload to App Store"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id:       "Q2YLT79GZD",
+      issuer_id:    ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: "#{ENV['HOME']}/.fastlane/app-store-connect-api-key.p8",
+      in_house:     false
+    )
+    increment_build_number(xcodeproj: "ios/App.xcodeproj")
+    build_app(
+      scheme: "App",
+      project: "ios/App.xcodeproj",
+      export_method: "app-store",
+      output_directory: "./build"
+    )
+    upload_to_app_store(
+      api_key:           api_key,
+      force:             true,
+      skip_metadata:     true,
+      skip_screenshots:  true,
+      submit_for_review: false
+    )
+  end
+end
+
+platform :android do
+  desc "Sync Capacitor + build Android AAB for Play Store"
+  lane :build_aab do
+    sh("cd .. && npx cap sync android")
+    sh("cd ../android && ./gradlew bundleRelease")
+  end
+
+  desc "Build AAB + upload to Play Store internal testing"
+  lane :internal do
+    build_aab
+    upload_to_play_store(
+      package_name:             PACKAGE_NAME,
+      track:                    "internal",
+      aab:                      "../android/app/build/outputs/bundle/release/app-release.aab",
+      json_key:                 GOOGLE_PLAY_KEY,
+      release_status:           "draft",
+      skip_upload_metadata:     true,
+      skip_upload_images:       true,
+      skip_upload_screenshots:  true
+    )
+    UI.success "✅ Datalyst → Play Store internal"
+  end
+
+  desc "Build AAB + upload to Play Store production"
+  lane :production do
+    build_aab
+    upload_to_play_store(
+      package_name:  PACKAGE_NAME,
+      track:         "production",
+      aab:           "../android/app/build/outputs/bundle/release/app-release.aab",
+      json_key:      GOOGLE_PLAY_KEY
+    )
+    UI.success "✅ Datalyst → Play Store production"
+  end
+
+  desc "Upload existing AAB (no build) — for re-uploads"
+  lane :upload_only do
+    upload_to_play_store(
+      package_name:             PACKAGE_NAME,
+      track:                    "internal",
+      aab:                      "../android/app/build/outputs/bundle/release/app-release.aab",
+      json_key:                 GOOGLE_PLAY_KEY,
+      release_status:           "draft",
+      skip_upload_metadata:     true,
+      skip_upload_images:       true,
+      skip_upload_screenshots:  true
+    )
+  end
+end

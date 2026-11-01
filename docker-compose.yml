@@ -1,0 +1,32 @@
+# docker compose up -d   →   http://localhost:3000
+services:
+  app:
+    build: .
+    ports: ["3000:3000"]
+    extra_hosts: ["host.docker.internal:host-gateway"]   # lets the app reach Ollama on your machine
+    environment:
+      DATABASE_URL: postgresql://datalyst:datalyst@db:5432/datalyst
+      # Set a password before exposing Datalyst beyond your own machine:
+      DATALYST_PASSWORD: ${DATALYST_PASSWORD:-}
+      # Optional AI insights, any LLM. OpenAI-compatible by default (OpenAI, OpenRouter, Groq, Ollama...):
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_PROVIDER: ${AI_PROVIDER:-}   # set to "anthropic" for Claude
+    depends_on:
+      db: { condition: service_healthy }
+    restart: unless-stopped
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: datalyst
+      POSTGRES_PASSWORD: datalyst
+      POSTGRES_DB: datalyst
+    volumes: ["datalyst-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datalyst"]
+      interval: 3s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  datalyst-data:

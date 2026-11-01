@@ -1,0 +1,475 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum SubvariableType {
+  NUMERIC          // Continuous or discrete numeric values
+  SCALE_0_10       // Self-evaluation scales from 0 to 10
+  BOOLEAN          // Binary yes/no (stored as 1/0)
+  CATEGORY         // Categorical values
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum EventType {
+  HABIT_CREATED
+  HABIT_UPDATED
+  HABIT_DELETED
+  ENTRY_CREATED
+  ENTRY_UPDATED
+  ENTRY_DELETED
+  SUBVARIABLE_CREATED
+  SUBVARIABLE_UPDATED
+}
+
+// Schedule frequency for protocols
+enum ScheduleType {
+  DAILY           // Every day (default)
+  WEEKLY          // Specific days of week
+  ADHOC           // Manual trigger only (not in widget)
+}
+
+// Time block for sorting protocols in dashboard
+enum TimeBlock {
+  MORNING         // Morning routines
+  AFTERNOON       // Midday protocols  
+  EVENING         // Evening routines
+  ANYTIME         // No specific time (default)
+}
+
+// Goal direction for variables (for correlation insights)
+enum GoalDirection {
+  HIGHER_BETTER   // e.g., Sleep Quality, Focus
+  LOWER_BETTER    // e.g., Anxiety, Stress
+  NEUTRAL         // Observation only (e.g., Caffeine intake)
+}
+
+// Methodology for the experiment logic
+enum ExperimentType {
+  OBSERVATIONAL   // Track correlations without intervention rules
+  RANDOMIZED      // A/B testing with full knowledge
+  BLIND_RCT       // A/B testing with condition labels hidden
+}
+
+// Experiment lifecycle status
+enum ExperimentStatus {
+  PLANNING        // Draft, not started
+  ACTIVE          // Currently running
+  COMPLETED       // Ended, results available
+  ARCHIVED        // Dismissed
+}
+
+// Randomization strategy for N=1 experiments
+enum RandomizationType {
+  SIMPLE          // Coin-flip each day
+  BLOCKED         // Balanced blocks (default, recommended)
+}
+
+// ========================================
+// MODELS
+// ========================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  passwordHash String?
+  
+  // Onboarding
+  onboardingCompleted Boolean @default(false)
+  
+  // Preferences
+  timezone  String   @default("UTC")
+  locale    String   @default("en-US")
+  theme     Theme    @default(SYSTEM)
+
+  // Privacy and consent
+  healthDataConsent   Boolean  @default(false)
+  healthDataConsentAt DateTime?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  habits         Habit[]
+  habitEntries   HabitEntry[]
+  habitTemplates HabitTemplate[]
+  sessionLogs    AppSessionLog[]
+  userEvents     UserEvent[]
+  experiments    Experiment[]
+  insightsCache  InsightsCache?
+  apiKeys        ApiKey[]
+  
+  @@index([email])
+}
+
+// Cache for expensive insight calculations
+model InsightsCache {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  data      Json     // Cached correlation results
+  createdAt DateTime @default(now())
+  expiresAt DateTime // When cache becomes stale (e.g., 1 hour)
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Habit {
+  id          String   @id @default(cuid())
+  userId      String
+  templateId  String?  // Optional reference to template used
+  
+  // Basic Info
+  name        String
+  description String?
+  color       String   @default("#3b82f6") // Hex color
+  icon        String   @default("🎯")      // Emoji or icon identifier
+  
+  // Schedule configuration
+  scheduleType  ScheduleType @default(DAILY)
+  // Days of week for WEEKLY type (0=Sunday, 1=Monday... 6=Saturday - matches JS Date.getDay())
+  scheduleDays  Int[]        @default([])
+  
+  // Dashboard sorting
+  timeBlock     TimeBlock    @default(ANYTIME)  // When to show in day
+  rank          Int          @default(0)         // Order within time block
+  
+  // Legacy schedule (kept for backward compatibility, will be deprecated)
+  schedule    String   @default("{}") // JSON string
+  
+  // Soft delete
+  archived    Boolean  @default(false)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template       HabitTemplate?    @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  subvariables   Subvariable[]
+  entries        HabitEntry[]
+  
+  // Experiment relations (habit can be independent or dependent variable)
+  independentExperiments Experiment[] @relation("IndependentVariable")
+  dependentExperiments   Experiment[] @relation("DependentVariable")
+  
+  @@index([userId])
+  @@index([userId, archived])
+  @@index([templateId])
+}
+
+model HabitTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  // Template Info
+  name        String
+  description String?
+  color       String   @default("#3b82f6")
+  icon        String   @default("🎯")
+  
+  // Default schedule configuration (JSON)
+  defaultSchedule String @default("{}")
+  
+  // Subvariable template configuration (JSON array)
+  // Example: [{ "name": "Pages", "type": "NUMERIC", "unit": "pages", "metadata": {}, "order": 0 }]
+  subvariableTemplate String @default("[]")
+  
+  // Usage tracking
+  useCount    Int      @default(0)
+  lastUsedAt  DateTime?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habits      Habit[]
+  
+  @@index([userId])
+  @@index([userId, name])
+  @@index([userId, useCount])
+}
+
+model Subvariable {
+  id       String          @id @default(cuid())
+  habitId  String
+  
+  // Basic Info
+  name     String
+  type     SubvariableType
+  unit     String?         // e.g., "kg", "km", "minutes"
+  prompt   String?         // Optional question/prompt (e.g., "How refreshed do you feel?")
+  
+  // Goal direction for correlation insights
+  goalDirection GoalDirection @default(NEUTRAL)
+  
+  // Metadata (JSON)
+  // For SCALE_0_10: { "min": 0, "max": 10, "labels": ["Low", "High"] }
+  // For CATEGORY: { "options": ["Option1", "Option2"] }
+  // For NUMERIC: { "step": 1 }
+  metadata String          @default("{}")
+  
+  // Order in the UI
+  order    Int             @default(0)
+  
+  // Active status (soft delete)
+  active   Boolean         @default(true)
+  
+  // Timestamps
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  
+  // Relations
+  habit    Habit           @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  entries  SubvariableEntry[]
+  
+  @@index([habitId])
+  @@index([habitId, active])
+}
+
+model HabitEntry {
+  id           String   @id @default(cuid())
+  habitId      String
+  userId       String
+  
+  // Timing
+  timestamp    DateTime @default(now())  // When it was actually registered
+  logicalDate  DateTime                  // The date this entry refers to (YYYY-MM-DD)
+  
+  // Optional note from user
+  note         String?
+
+  // N=1 compliance tracking
+  followedAssignment Boolean? // null = no experiment, true = followed, false = deviated
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  habit        Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subvariableEntries SubvariableEntry[]
+  
+  @@index([habitId])
+  @@index([userId])
+  @@index([logicalDate])
+  @@index([userId, logicalDate])
+}
+
+model SubvariableEntry {
+  id            String   @id @default(cuid())
+  habitEntryId  String
+  subvariableId String
+  
+  // Values
+  numericValue  Float           // Standardized numeric value (even for boolean: 0 or 1)
+  rawValue      String?         // Original value if needed (for categories, text, etc.)
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  habitEntry    HabitEntry   @relation(fields: [habitEntryId], references: [id], onDelete: Cascade)
+  subvariable   Subvariable  @relation(fields: [subvariableId], references: [id], onDelete: Cascade)
+  
+  @@unique([habitEntryId, subvariableId])
+  @@index([habitEntryId])
+  @@index([subvariableId])
+}
+
+model AppSessionLog {
+  id        String   @id @default(cuid())
+  userId    String
+  
+  // Session info
+  timestamp DateTime @default(now())
+  origin    String   @default("web")  // "web", "mobile-web", etc.
+  duration  Int?                      // Duration in seconds (if trackable)
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([timestamp])
+}
+
+model UserEvent {
+  id         String    @id @default(cuid())
+  userId     String
+  
+  // Event details
+  eventType  EventType
+  entityId   String?   // ID of the entity affected (habitId, entryId, etc.)
+  metadata   String    @default("{}")  // JSON with additional context
+  
+  // Timestamp
+  timestamp  DateTime  @default(now())
+  
+  // Relations
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([eventType])
+  @@index([userId, timestamp])
+}
+
+// Experiment model - overlay on habits to test correlations
+model Experiment {
+  id              String           @id @default(cuid())
+  userId          String
+  
+  type            ExperimentType   @default(OBSERVATIONAL)
+  
+  // Experiment info
+  name            String           // "Does Magnesium Improve Sleep?"
+  hypothesis      String?          // Free text for context
+  
+  // Variable links (both must be existing habits)
+  independentId   String           // The variable you're changing
+  dependentId     String           // The outcome you're measuring
+  
+  // Date range (stored as YYYY-MM-DD strings for timezone safety)
+  startDate       String           // "2025-12-20"
+  endDate         String           // "2026-01-03"
+
+  // N=1 experimentation fields
+  randomizationType RandomizationType @default(BLOCKED)
+  washoutPeriod     Int               @default(2)       // Adaptation days between condition switches
+  isBlind           Boolean           @default(false)    // Hide condition labels until trial ends
+  blockSize         Int               @default(4)        // Days per randomization block (for BLOCKED type)
+
+  // Pre-registration: lock hypothesis before trial starts (p-hacking protection)
+  hypothesisLockedAt DateTime?        // Timestamp when hypothesis was locked
+  analysisParams     String           @default("{}")     // JSON: locked analysis config
+  conditions         String?          // JSON array of conditions, e.g. [{label:"A"},{label:"B"}]
+
+  // Blinding integrity (Bang Index)
+  blindGuess         String?          // User's guess of which condition was active: "A" or "B"
+  blindRevealedAt    DateTime?        // When unblinding happened
+
+  // Status workflow
+  status          ExperimentStatus @default(PLANNING)
+
+  // Protocol link (for N=x aggregation)
+  protocolId      String?
+  protocol        Protocol?        @relation(fields: [protocolId], references: [id])
+
+  // EAS Attestation (Base L2)
+  attestationUid  String?          // EAS unique ID
+  attestationTx   String?          // Base transaction hash
+
+  // Viral Share
+  slug            String?          @unique
+  isPublic        Boolean          @default(false)
+
+  // Timestamps
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  independent     Habit            @relation("IndependentVariable", fields: [independentId], references: [id], onDelete: Cascade)
+  dependent       Habit            @relation("DependentVariable", fields: [dependentId], references: [id], onDelete: Cascade)
+  assignments     Assignment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([userId, status])
+  @@index([protocolId])
+  @@index([slug])
+}
+
+// Daily condition assignment for an experiment's A/B schedule
+model Assignment {
+  id            String   @id @default(cuid())
+  experimentId  String
+
+  date          String   // "2026-01-05" (YYYY-MM-DD)
+  condition     String   // "A" or "B"
+  blockIndex    Int      // Which randomization block this belongs to
+  isWashout     Boolean  @default(false) // True if this day is a washout/adaptation day
+
+  createdAt     DateTime @default(now())
+
+  experiment    Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, date])
+  @@index([experimentId])
+}
+
+// ========================================
+// PROTOCOL & AGENT API MODELS
+// ========================================
+
+// Standardized experiment protocols for N=x aggregation
+model Protocol {
+  id          String       @id @default(cuid())
+  slug        String       @unique  // e.g., "magnesium-sleep-v1"
+  name        String                // "Magnesium for Sleep Quality"
+  description String?
+  version     String       @default("1.0")
+  
+  // Defines the expected independent and dependent variable structure
+  // JSON: { name, type, unit, metadata }
+  independentTemplate Json
+  dependentTemplate   Json
+  
+  // Recommended experiment parameters
+  recommendedDuration Int   @default(14)  // days
+  recommendedWashout  Int   @default(2)   // days
+  
+  isPublic    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  experiments Experiment[]
+  
+  @@index([slug])
+  @@index([isPublic])
+}
+
+// API keys for external agents (Moltbot, OpenClaw, etc.)
+model ApiKey {
+  id          String   @id @default(cuid())
+  key         String   @unique  // The actual API key (hashed in production)
+  name        String            // e.g., "Moltbot Production"
+  agentId     String?           // Optional agent identifier
+  
+  // Rate limiting
+  rateLimitPerMinute Int @default(60)
+  
+  // Ownership
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime?
+  
+  @@index([key])
+  @@index([userId])
+}

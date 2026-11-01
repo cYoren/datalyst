@@ -1,0 +1,221 @@
+name: iOS legacy signed workflow (disabled)
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: Upload the signed IPA to App Store Connect/TestFlight. Does not submit for review.
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      build_number:
+        description: Store-verified CFBundleVersion override. Never inferred from a workflow run.
+        required: false
+        default: ""
+      store_build_numbers_verified:
+        description: Both stores were checked and the synchronized version/build is unused.
+        type: boolean
+        required: true
+        default: false
+
+jobs:
+  build-ios:
+    # This legacy path lacks separate App + TodayWidget signing profiles and
+    # HealthKit/App Group validation. Do not use it for the 1.1 release.
+    # Compile-only replacement: bash scripts/native-build.sh ios-simulator.
+    # Re-enable only after reviewing a complete widget-aware signed archive flow.
+    if: ${{ false }}
+    name: Build signed iOS IPA without Expo
+    # Historical runner configuration only; the current Mac toolchain has not
+    # been verified. The entire signed job remains disabled above.
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      APP_IDENTIFIER: com.datalyst.app
+      APP_NAME: Datalyst
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+      KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode (needs iOS 26 SDK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          echo "using $latest"
+          sudo xcode-select -s "$latest"
+          XCODE_VERSION="$(xcodebuild -version | awk 'NR==1 {print $2}')"
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          printf 'Xcode=%s iPhoneOSSDK=%s\n' "$XCODE_VERSION" "$SDK_VERSION"
+          test "${XCODE_VERSION%%.*}" -ge 26
+          test "${SDK_VERSION%%.*}" -ge 26
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply native build patches
+        run: node scripts/fix-apple-sign-in-plugin.mjs
+
+      - name: Install Ruby dependencies (fastlane, cocoapods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Build web app and sync Capacitor iOS project
+        run: npm run ios:ci:prepare
+
+      - name: Decode signing assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p signing/ci ~/Library/MobileDevice/Provisioning\ Profiles
+          printf '%s' '${{ secrets.IOS_CERTIFICATE_BASE64 }}' | base64 --decode > signing/ci/distribution.p12
+          printf '%s' '${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}' | base64 --decode > signing/ci/profile.mobileprovision
+          printf '%s' '${{ secrets.ASC_API_KEY_BASE64 }}' | base64 --decode > signing/ci/AuthKey.p8
+          PROFILE_UUID=$(security cms -D -i signing/ci/profile.mobileprovision | plutil -extract UUID raw -)
+          PROFILE_NAME=$(security cms -D -i signing/ci/profile.mobileprovision | plutil -extract Name raw -)
+          security cms -D -i signing/ci/profile.mobileprovision > signing/ci/profile.plist
+          if ! /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.applesignin' signing/ci/profile.plist >/dev/null 2>&1; then
+            echo 'ERROR: provisioning profile does not include Sign in with Apple.' >&2
+            echo 'Enable the capability for com.datalyst.app and regenerate IOS_PROVISION_PROFILE_BASE64.' >&2
+            exit 1
+          fi
+          cp signing/ci/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          echo "PROFILE_UUID=${PROFILE_UUID}" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=${PROFILE_NAME}" >> "$GITHUB_ENV"
+
+      - name: Import signing certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          security delete-keychain build.keychain 2>/dev/null || true
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import signing/ci/distribution.p12 -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k build.keychain
+          security list-keychains -d user -s build.keychain login.keychain
+          security default-keychain -s build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+      - name: Archive app
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER="${{ github.event.inputs.build_number }}"
+          test '${{ inputs.store_build_numbers_verified }}' = 'true'
+          test -n "$BUILD_NUMBER"
+          mkdir -p build
+          xcodebuild archive \
+            -project ios/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/${APP_NAME}.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            PRODUCT_BUNDLE_IDENTIFIER="$APP_IDENTIFIER" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            MARKETING_VERSION="$(node -p "require('./native-version.json').version")" \
+            clean archive
+          ARCHIVE_APP=$(find "build/${APP_NAME}.xcarchive/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -n "$ARCHIVE_APP"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+
+      - name: Export IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > build/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${APP_IDENTIFIER}</key>
+              <string>${PROFILE_NAME}</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/${APP_NAME}.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist build/ExportOptions.plist
+          ls -lah build/export
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: datalyst-ios-ipa
+          path: build/export/*.ipa
+          if-no-files-found: error
+
+      - name: Upload to App Store Connect/TestFlight
+        if: ${{ inputs.upload_to_testflight == 'true' && inputs.store_build_numbers_verified }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          key = pathlib.Path('signing/ci/AuthKey.p8').read_text()
+          pathlib.Path('signing/ci/asc-api-key.json').write_text(json.dumps({
+              'key_id': os.environ['ASC_KEY_ID'],
+              'issuer_id': os.environ['ASC_ISSUER_ID'],
+              'private_key': key,
+          }))
+          PY
+          IPA_PATH=$(ls build/export/*.ipa | head -n 1)
+          rm -rf build/ipa-inspect
+          mkdir -p build/ipa-inspect
+          unzip -q "$IPA_PATH" -d build/ipa-inspect
+          ACTUAL_BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/ipa-inspect/Payload/*.app/Info.plist)
+          if [ "$ACTUAL_BUILD_NUMBER" != "$BUILD_NUMBER" ]; then
+            echo "ERROR: IPA CFBundleVersion=$ACTUAL_BUILD_NUMBER, expected $BUILD_NUMBER" >&2
+            exit 1
+          fi
+          mkdir -p "$HOME/.private_keys"
+          cp signing/ci/AuthKey.p8 "$HOME/.private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          ALTOOL_LOG=$(mktemp)
+          xcrun altool \
+            --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "${ASC_KEY_ID}" \
+            --apiIssuer "${ASC_ISSUER_ID}" 2>&1 | tee "$ALTOOL_LOG"
+          python3 - "$ALTOOL_LOG" <<'PY'
+          import pathlib, sys
+          output = pathlib.Path(sys.argv[1]).read_text()
+          if 'ERROR:' in output or 'Failed to upload package' in output:
+              raise SystemExit('App Store Connect upload reported an error')
+          if 'No errors uploading archive' not in output and 'Package successfully uploaded' not in output:
+              raise SystemExit('App Store Connect upload success marker was not found')
+          PY

@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "bb3ae82e-7cab-4ba6-9aee-369ad12e69c9"
+      }
+    },
+    "name": "Datalyst",
+    "slug": "datalyst",
+    "version": "1.0.5",
+    "scheme": "datalyst",
+    "icon": "./public/icon-512.png",
+    "android": {
+      "package": "com.datalyst.app",
+      "versionCode": 35
+    },
+    "ios": {
+      "bundleIdentifier": "com.datalyst.app",
+      "buildNumber": "36",
+      "supportsTablet": true
+    }
+  }
+}

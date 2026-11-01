@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env*
+android
+ios
+www
+test-results
+e2e
+tasks
+*.tsbuildinfo
+prisma/dev.db

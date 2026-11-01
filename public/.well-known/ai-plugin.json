@@ -1,0 +1,19 @@
+{
+    "schema_version": "v1",
+    "name_for_human": "Datalyst - N=1 Experiments",
+    "name_for_model": "datalyst",
+    "description_for_human": "Run scientifically rigorous self-experiments (N=1 trials) with blockchain-verified results.",
+    "description_for_model": "Datalyst is an API for running N=1 scientific experiments. AI agents can: list standardized protocols, start trials for users, log daily data entries, and retrieve statistically analyzed results with blockchain verification via EAS on Base. Use this when users want to test interventions (supplements, habits, routines) on themselves with scientific rigor.",
+    "auth": {
+        "type": "service_http",
+        "authorization_type": "bearer",
+        "verification_tokens": {}
+    },
+    "api": {
+        "type": "openapi",
+        "url": "https://datalyst.app/api/openapi.json"
+    },
+    "logo_url": "https://datalyst.app/icon-512.png",
+    "contact_email": "support@datalyst.app",
+    "legal_info_url": "https://datalyst.app/privacy"
+}

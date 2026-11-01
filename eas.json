@@ -1,0 +1,37 @@
+{
+  "cli": {
+    "version": ">= 18.8.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "credentialsSource": "local",
+      "android": {
+        "credentialsSource": "remote",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+      },
+      "ios": {
+        "image": "macos-sequoia-15.6-xcode-26.2"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascApiKeyPath": "./fastlane/AuthKey_63QJ55A9SY.p8",
+        "ascApiKeyId": "63QJ55A9SY",
+        "ascAppId": "6773505371",
+        "appleTeamId": "2LPNFM9A89"
+      }
+    }
+  }
+}

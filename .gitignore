@@ -1,0 +1,79 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+server*.log
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.attestations.example
+!.env.example
+
+# vercel
+.vercel
+
+# cloudflare workers
+.open-next
+.wrangler
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/src/generated/prisma
+
+# local databases
+prisma/*.db
+
+# capacitor
+# o bundle web sao 3 arquivos de 4 KB e a EAS precisa dele para rodar o gradle
+.aider*
+
+# AI agent temp files
+.tmp_gaius/
+.tmp_openclaw/
+
+# Android signing secrets
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+
+# iOS signing material
+credentials.json
+fastlane/AuthKey_*.p8
+signing/ios/*.p12
+signing/ios/*.mobileprovision
+
+# Local junk (was committed by accident)
+/output/
+/Microsoft/
+/server*.log
+/test-results/
+/.native-artifacts/

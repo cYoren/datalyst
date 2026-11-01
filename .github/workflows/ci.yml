@@ -1,0 +1,26 @@
+name: CI
+
+# Manual-only verification. Routine checks run locally to avoid burning Actions
+# minutes on advisory lint/build jobs.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: datalyst-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Lint (advisory)
+        run: npm run lint || true
+      - name: Build (advisory)
+        run: npm run build || true

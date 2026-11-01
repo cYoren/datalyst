@@ -1,0 +1,11 @@
+App/build
+App/Pods
+App/output
+
+DerivedData
+xcuserdata
+
+# Cordova plugins for Capacitor
+capacitor-cordova-ios-plugins
+
+# Generated Capacitor resources are tracked because the EAS archive needs them.

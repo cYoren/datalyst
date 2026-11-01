@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  /* Datalyst: dark editorial palette, shared with the landing page.
+     Text tokens are solid colours chosen to clear WCAG AA (4.5:1) on every panel. */
+  :root {
+    --font-display: var(--font-archivo), system-ui, sans-serif;
+    --font-body: var(--font-inter), system-ui, sans-serif;
+
+    --color-bg-app: #121316;
+    --color-bg-card: #17181c;
+    --color-bg-subtle: #1d1f24;
+    --color-control-bg: #1d1f24;
+    --color-control-bg-hover: #24262c;
+    --color-control-bg-focus: #24262c;
+    --color-text-primary: #f2f1ee;
+    --color-text-secondary: #aaa9a6;
+    --color-text-tertiary: #8e8d8b;
+    --color-accent: #9d9fff;
+    --color-accent-light: rgba(157, 159, 255, 0.12);
+    --color-accent-hover: #b9baff;
+    --color-on-accent: #121316;
+    --color-teal: #5ed3b5;
+    --color-amber: #f5b54a;
+    --color-coral: #ff8a6b;
+    --color-violet: #9d9fff;
+    --color-success: #5ed3b5;
+    --color-warning: #f5b54a;
+    --color-error: #ff8a6b;
+    --color-border: rgba(242, 241, 238, 0.1);
+    --color-border-hover: rgba(242, 241, 238, 0.2);
+    /* Form controls need 3:1 against their surroundings (WCAG 1.4.11). */
+    --color-control-border: #6e6e72;
+    --shadow-soft: none;
+    --shadow-card: none;
+    --shadow-hover: none;
+    --shadow-elevated: 0 24px 64px rgba(0, 0, 0, 0.55);
+    --radius-card: 4px;
+    --radius-button: 2px;
+    --radius-input: 2px;
+
+    --bg-app: var(--color-bg-app);
+    --bg-card: var(--color-bg-card);
+    --bg-subtle: var(--color-bg-subtle);
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
+    --text-tertiary: var(--color-text-tertiary);
+    --accent: var(--color-accent);
+    --accent-light: var(--color-accent-light);
+    --accent-hover: var(--color-accent-hover);
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --error: var(--color-error);
+    --border: var(--color-border);
+    --border-hover: var(--color-border-hover);
+    /* Legacy names still referenced by some pages. */
+    --bg-secondary: var(--color-bg-card);
+    --bg-tertiary: var(--color-bg-subtle);
+    --border-color: var(--color-border);
+    --color-bg-page: var(--color-bg-app);
+
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+    font-weight: 620;
+  }
+
+  input, textarea, select {
+    font-size: 16px !important;
+    color: var(--color-text-primary);
+    background-color: var(--color-control-bg);
+    border-color: var(--color-control-border);
+  }
+
+  input:focus, textarea:focus, select:focus {
+    background-color: var(--color-control-bg-focus);
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 1;
+  }
+
+  @media (pointer: coarse) {
+    button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    input, select, textarea {
+      min-height: 44px;
+    }
+  }
+}
+
+@layer utilities {
+  .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+  .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-reveal-stagger { animation: revealStagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .paper-lift { transition: border-color 0.15s ease; }
+  .paper-lift:hover { border-color: var(--color-border-hover); }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .font-display { font-family: var(--font-display); }
+  .font-body { font-family: var(--font-body); }
+  /* Mono uppercase label, as in the landing page's "01 / SECTION" bars. */
+  .label-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-text-tertiary); }
+  .label-mono b { color: var(--color-text-primary); font-weight: 500; }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+  .mt-safe { margin-top: env(safe-area-inset-top); }
+  .min-h-screen-safe { min-height: calc(100vh - env(safe-area-inset-bottom) - env(safe-area-inset-top)); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes revealStagger { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Form focus and route navigation must settle immediately above mobile navigation. */
+html:has([data-app-shell]) {
+  scroll-behavior: auto;
+  scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-hover); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}

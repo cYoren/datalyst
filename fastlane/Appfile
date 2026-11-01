@@ -1,0 +1,15 @@
+# App Store / Play Store Configuration
+apple_id(ENV["APPLE_ID"])
+team_id("2LPNFM9A89")
+
+# For Google Play
+json_key_file("~/.fastlane/google-play-key.json")
+package_name("com.datalyst.app")
+
+# App Store Connect API Key (for CI/CD)
+app_store_connect_api_key(
+  key_id: "Q2YLT79GZD",
+  issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+  key_filepath: "~/.fastlane/app-store-connect-api-key.p8",
+  in_house: false
+)
