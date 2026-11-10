@@ -7,7 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { createClient } from '@/lib/supabase/client';
-import { clearPersistedCache } from '@/providers/SWRProvider';
+import { clearLocalAccountData } from '@/lib/accountLocalData';
 import { ReminderControl } from '@/components/ui/ReminderControl';
 import { HealthImportControl } from '@/components/ui/HealthImportControl';
 import { clearWidget } from '@/lib/widget';
@@ -131,6 +131,13 @@ export default function SettingsPage() {
 
         setDeleting(true);
         setMessage('');
+        // Capture the account before sign-out clears the session: local cleanup is
+        // keyed by it, and it must never run for a different account.
+        const accountId = typeof user?.id === 'string' ? user.id : null;
+        if (!accountId) {
+            setMessage('Unable to verify your account. Refresh the page and try again.');
+            return;
+        }
         try {
             const res = await fetch('/api/user', {
                 method: 'DELETE',
@@ -144,11 +151,24 @@ export default function SettingsPage() {
             }
 
             const supabase = createClient();
-            await supabase.auth.signOut();
-            // The account is gone; so is anything cached for it.
-            clearPersistedCache();
+            try {
+                await supabase.auth.signOut();
+            } catch {
+                // The server already deleted the account. Continue local cleanup.
+            }
+            // The account is gone; so is anything this device kept for it. A local
+            // storage failure must never report the server-side deletion as failed.
+            try {
+                await clearLocalAccountData(accountId);
+            } catch {
+                // Best effort: the account no longer exists either way.
+            }
             // Last, so no in-flight dashboard fetch refills the home screen widget.
-            await clearWidget();
+            try {
+                await clearWidget();
+            } catch {
+                // Cleanup is best effort after the server confirmed deletion.
+            }
             window.location.href = '/';
         } catch (error: unknown) {
             setMessage(error instanceof Error ? error.message : 'Unable to delete account. Please contact support.');

@@ -20,6 +20,16 @@ describe('persisted SWR cache', () => {
         setCacheOwner(null);
     });
 
+    it('never overwrites a response that already arrived this session', () => {
+        persist('user-a', { '/api/dashboard': { streak: 4 }, '/api/entries': { stale: true } });
+        setCacheOwner('user-a');
+        const map = new Map<string, unknown>([['/api/dashboard', { streak: 9 }]]);
+        readPersistedCache(map);
+        // Fresh wins; the entry that was not fetched yet is restored.
+        expect(map.get('/api/dashboard')).toEqual({ streak: 9 });
+        expect(map.get('/api/entries')).toEqual({ stale: true });
+    });
+
     it('restores a cache written by the same account', () => {
         persist('user-a', { '/api/dashboard': { streak: 4 } });
         const map = hydrate('user-a');

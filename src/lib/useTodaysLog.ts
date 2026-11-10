@@ -192,7 +192,11 @@ export function useTodaysLog() {
                 return await postQuick(payload);
             } catch (error) {
                 if (!isNetworkFailure(error)) throw error;
-                enqueue(payload, ownerId);
+                if (!enqueue(payload, ownerId)) {
+                    // No account known yet, so nothing could be queued. Reporting a
+                    // save here would lose the check-in silently.
+                    throw new Error('You are offline and this check-in could not be queued. Try again once the app has finished loading.');
+                }
                 setPending(pendingCount(ownerId));
                 queued = true;
                 return null;

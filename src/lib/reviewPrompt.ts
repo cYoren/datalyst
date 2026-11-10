@@ -175,3 +175,12 @@ export function recordCheckIn(opts: {
         ? recordPositiveMoment('peak', { dedupeKey: `day-${opts.logicalDate}` })
         : recordPositiveMoment('routine');
 }
+
+/** Forget the local review-prompt history when its account is deleted. */
+export function clearReviewPromptState(): void {
+    try {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(STATE_KEY);
+    } catch {
+        /* best-effort local cleanup */
+    }
+}

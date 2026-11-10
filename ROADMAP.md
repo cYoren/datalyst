@@ -616,6 +616,18 @@ Never log raw habit entries, journals, prompts, or model responses by default.
 - automatic medication, supplement, or lifestyle prescriptions
 - replacing the deterministic statistics engine with an LLM
 
+### Adjacent track: hosted research studies
+
+"Multi-user collaboration" above means teams working inside the consumer product. It does **not** exclude
+researcher studies, which already ship: a preregistered protocol with a frozen hash, a consent link, an
+immutable randomized assignment snapshot, a pseudonymous evidence packet and EAS attestations
+([`docs/researcher-studies.md`](docs/researcher-studies.md)).
+
+This roadmap does not plan them and they do not depend on any AI capability here. The work that stands
+between "shipped" and "easy to host" is tracked separately: a validated protocol editor, a power hint
+and a one-page study report in [`docs/studies-roadmap.md`](docs/studies-roadmap.md); the key, scope and
+MCP surface an app or an agent uses is in [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
+
 ## 14. First implementation sequence
 
 When execution starts, follow this order:

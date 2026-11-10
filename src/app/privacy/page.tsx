@@ -12,7 +12,7 @@ export default function PrivacyPage() {
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
                 <header className="space-y-2">
                     <h1 className="text-3xl font-bold text-[var(--text-primary)]">Privacy Policy</h1>
-                    <p className="text-sm text-[var(--text-tertiary)]">Effective date: 2026-01-23</p>
+                    <p className="text-sm text-[var(--text-tertiary)]">Last updated: 2026-11-09</p>
                 </header>
 
                 <section className="space-y-3 text-[var(--text-secondary)]">
@@ -34,6 +34,21 @@ export default function PrivacyPage() {
                         <li>Usage logs: session timestamps and events.</li>
                         <li>Consent records for health-related data.</li>
                     </ul>
+                </section>
+
+                <section className="space-y-3 text-[var(--text-secondary)]">
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Information stored on your device</h2>
+                    <p>
+                        The app keeps cached service responses, pending offline check-ins, health-import settings,
+                        reminder settings and review-prompt history in your browser or device. Some of it can relate to
+                        your account and to the symptoms and habits you log. See our{' '}
+                        <Link className="text-[var(--color-accent)] hover:underline" href="/cookies">Cookie Notice</Link>{' '}
+                        for what each item holds, which account it belongs to and how the current app version clears it.
+                    </p>
+                    <p>
+                        Older unsynced check-ins may not record an account. They are never replayed under a different
+                        account and may remain in browser storage until site data is cleared.
+                    </p>
                 </section>
 
                 <section className="space-y-3 text-[var(--text-secondary)]">

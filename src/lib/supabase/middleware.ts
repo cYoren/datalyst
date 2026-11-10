@@ -95,8 +95,14 @@ export async function updateSession(request: NextRequest) {
         '/api/openapi.json',
         '/docs/agent-api',
     ]
-    const isPublicPage = ['/', '/privacy', '/terms', '/cookies', '/contact', '/manifest.json', '/site.webmanifest', '/sw.js', '/offline.html']
-        .includes(request.nextUrl.pathname) || /^\/(?:share|api\/og)\/[^/]+$/.test(request.nextUrl.pathname)
+    const publicPages = ['/', '/privacy', '/terms', '/cookies', '/contact', '/manifest.json', '/site.webmanifest', '/sw.js', '/offline.html']
+    // Condition pages are marketing content: they must be readable by search
+    // engines and by someone deciding whether to install, so they stay outside
+    // the session gate.
+    const isPublicPage = publicPages.includes(request.nextUrl.pathname)
+        || request.nextUrl.pathname === '/conditions'
+        || request.nextUrl.pathname.startsWith('/conditions/')
+        || /^\/(?:share|api\/og)\/[^/]+$/.test(request.nextUrl.pathname)
     const isPublicDiscoveryPage = request.nextUrl.pathname.startsWith('/.well-known/') ||
         publicDiscoveryPaths.includes(request.nextUrl.pathname)
 

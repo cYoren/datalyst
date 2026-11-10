@@ -55,4 +55,14 @@ describe('Health device settings account isolation', () => {
         expect(JSON.parse(String(request.options?.body))).toEqual({ connectionId: 'device-alice', deleteData: false });
         expect(storage.has('datalyst:health-v2:alice')).toBe(false);
     });
+    it('clears one deleted account setting and leaves another account on the device', async () => {
+        saved('alice'); saved('bob');
+        const health = await import('./health');
+        health.clearHealthSettingForAccount('alice');
+        expect(storage.has('datalyst:health-v2:alice')).toBe(false);
+        expect(storage.has('datalyst:health-v2:bob')).toBe(true);
+        health.clearHealthSettingForAccount(undefined);
+        health.clearHealthSettingForAccount('');
+        expect(storage.has('datalyst:health-v2:bob')).toBe(true);
+    });
 });

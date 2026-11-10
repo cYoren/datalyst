@@ -6,7 +6,7 @@ const index = {
       type: "skill-md",
       description: "Connect to the Datalyst MCP server or Agent API to read trackers, log Check-ins, run N=1 experiments, and retrieve results.",
       url: "https://datalyst.one/.well-known/agent-skills/datalyst-agent-api/SKILL.md",
-      digest: "sha256:ae00bf901645cebc07822c01633f114bf7c9c14e4fac40b0e5c2d1cf3ad7dcd1",
+      digest: "sha256:0a54f977a38652304698973d13d27fc13d087bba960334c3bbc6b40b35f258e0",
     },
   ],
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reminderDates } from './reminders';
+import { forgetReminder, reminderDates } from './reminders';
 
 describe('reminderDates', () => {
     const morning = new Date(2026, 8, 24, 9, 0);
@@ -22,3 +22,12 @@ describe('reminderDates', () => {
         expect(dates.map((d) => [d.getMonth(), d.getDate()])).toEqual([[9, 1], [9, 2]]);
     });
 });
+
+describe('forgetReminder', () => {
+    it('removes the local reminder preference and does not throw on the web', async () => {
+        window.localStorage.setItem('datalyst:reminder-v1', JSON.stringify({ enabled: true, time: '20:00', count: 3 }));
+        await forgetReminder();
+        expect(window.localStorage.getItem('datalyst:reminder-v1')).toBeNull();
+    });
+});
+

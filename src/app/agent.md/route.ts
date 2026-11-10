@@ -17,13 +17,13 @@ Datalyst is a symptom and habit tracker. People log how they feel and what they 
 
 ## MCP server
 
-Datalyst runs a remote MCP server at https://www.datalyst.one/api/mcp (Streamable HTTP). Authenticate with "Authorization: Bearer <key>" using a key the user creates in Settings. Tools: list_trackers, get_today, log_checkin, get_entries, get_correlations, list_experiments, create_experiment, get_experiment_results, export_data. Setup for Claude, Cursor and the OpenAI API: https://www.datalyst.one/docs/agent-api#connect-an-agent
+Datalyst runs a remote MCP server at https://www.datalyst.one/api/mcp (Streamable HTTP). Authenticate with "Authorization: Bearer <key>" using a key the user creates in Settings. Tools: list_trackers, create_tracker, get_today, parse_log, log_checkin, get_entries, get_correlations, list_experiments, create_experiment, get_experiment_results, export_data. Studies, with a key that has the research scopes: get_study_protocol_schema, create_study_draft, list_studies, get_study_evidence. A draft never recruits anybody; the researcher opens recruitment in Lab. Setup for Claude, Cursor and the OpenAI API: https://www.datalyst.one/docs/agent-api#connect-an-agent
 
     claude mcp add --transport http datalyst https://www.datalyst.one/api/mcp --header "Authorization: Bearer <key>"
 
 ## Agent API
 
-The REST agent API accepts the same key in an X-API-Key or Authorization: Bearer header. Users create keys in Settings (read, or read and write). Do not put keys in URLs, browser code, or logs.
+The REST agent API accepts the same key in an X-API-Key or Authorization: Bearer header. Users create keys in Settings (read, write, and the separate research:read / research:write scopes). Do not put keys in URLs, browser code, or logs.
 
 ## Data boundary
 

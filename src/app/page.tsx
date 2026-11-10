@@ -241,6 +241,7 @@ export default function Home() {
         <footer className={s.footer}>
           <span>© {new Date().getFullYear()} Datalyst · CNPJ 64.661.660/0001-04</span>
           <nav aria-label="Legal">
+            <Link href="/conditions">Conditions</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
             <Link href="/contact">Contact</Link>

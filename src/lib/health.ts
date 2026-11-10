@@ -62,6 +62,21 @@ function writeHealthSetting(setting: HealthSetting | null) {
     }
 }
 
+/**
+ * Remove one account's saved health-import preferences after that account is
+ * deleted. Health readings are never stored here, only the metric selection,
+ * the connection id and the last sync time.
+ */
+export function clearHealthSettingForAccount(ownerId: string | null | undefined): void {
+    if (!ownerId || typeof window === 'undefined') return;
+    try {
+        window.localStorage.removeItem(STORAGE_KEY + ownerId);
+        if (activeAccountId === ownerId) activeAccountId = null;
+    } catch {
+        /* storage may be blocked; nothing to clear then */
+    }
+}
+
 async function refreshAccount(): Promise<string | null> {
     try {
         const response = await fetch('/api/user', { cache: 'no-store' });

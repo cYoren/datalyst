@@ -11,7 +11,8 @@ head pain, steps and mood) and lets you test one change at a time. A pattern is 
 - **Correlations you can trust.** Correlations with sample sizes, autocorrelation checks and data-quality warnings, not vibes.
 - **N-of-1 experiments.** Randomized A/B schedules, washout periods, carryover and period tests, power analysis.
 - **Your data, your way.** Full JSON/CSV export and one-click import between any two Datalyst servers.
-- **Agent-ready.** REST API and an MCP server with scoped API keys, so your AI assistant can log and read data.
+- **Hosted pilot studies.** Preregister a protocol with a frozen hash, recruit through a consent link, collect daily outcomes, and read a pseudonymous evidence packet with a meta-analysis and a codebook. What is still missing to make hosting easy: [docs/studies-roadmap.md](docs/studies-roadmap.md).
+- **Agent-ready.** REST API and an MCP server with scoped API keys, so your AI assistant can log and read data, draft a study and read its evidence. Keys, scopes and tools: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md).
 
 ## Run it yourself (2 minutes)
 
@@ -63,6 +64,14 @@ Tests: `npm test` · Types: `npx tsc --noEmit` · Lint: `npm run lint`
 
 Stack: Next.js 16, React 19, TypeScript, Prisma, PostgreSQL, Tailwind 4, Recharts. The phone apps are
 Capacitor shells in `ios/` and `android/`.
+
+## Documentation
+
+- [`docs/researcher-studies.md`](docs/researcher-studies.md): what the hosted-study feature does today, and its data boundary.
+- [`docs/studies-roadmap.md`](docs/studies-roadmap.md): the three gaps between shipped and easy to host.
+- [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md): API keys, scopes, MCP tools, rate limits, the two enrolment paths.
+- [`docs/VERIFIABLE_RESEARCH.md`](docs/VERIFIABLE_RESEARCH.md): EAS attestations for experiments and studies.
+- [`docs/MIGRATION_BASELINE.md`](docs/MIGRATION_BASELINE.md): how to baseline a PostgreSQL database before `prisma migrate deploy`.
 
 ## How the two modes work
 

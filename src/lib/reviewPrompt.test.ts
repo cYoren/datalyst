@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    clearReviewPromptState,
     PROMPT_COOLDOWN_MS,
     recordCheckIn,
     recordPositiveMoment,
@@ -99,3 +100,21 @@ describe('review prompt gate', () => {
         await expect(recordPositiveMoment('peak')).resolves.toBe(false);
     });
 });
+
+describe('clearReviewPromptState', () => {
+    beforeEach(() => window.localStorage.clear());
+
+    it('forgets the local history so a new account on this device starts fresh', () => {
+        window.localStorage.setItem('datalyst:review-prompt-state-v1', JSON.stringify({ weight: 5, last: '2026-11-01' }));
+        clearReviewPromptState();
+        expect(window.localStorage.getItem('datalyst:review-prompt-state-v1')).toBeNull();
+    });
+
+    it('is safe when storage throws', () => {
+        const removeItem = window.localStorage.removeItem;
+        window.localStorage.removeItem = () => { throw new Error('blocked'); };
+        expect(() => clearReviewPromptState()).not.toThrow();
+        window.localStorage.removeItem = removeItem;
+    });
+});
+

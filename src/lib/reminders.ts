@@ -115,3 +115,26 @@ export async function syncReminder(doneToday: boolean): Promise<void> {
         /* a failed reschedule keeps the previous window, which is still valid */
     }
 }
+
+/**
+ * Remove Datalyst's own scheduled notifications and the local preference after
+ * the server confirms account deletion. Other apps' notifications share the same
+ * plugin, so only ids in Datalyst's range are cancelled.
+ */
+export async function forgetReminder(): Promise<void> {
+    try {
+        const ln = await plugin();
+        if (ln) {
+            const pending = await ln.getPending();
+            const ours = pending.notifications.filter((n) => n.id >= ID_BASE && n.id < ID_BASE + 100);
+            if (ours.length) await ln.cancel({ notifications: ours.map((n) => ({ id: n.id })) });
+        }
+    } catch {
+        /* account deletion must continue if the device notification API fails */
+    }
+    try {
+        if (typeof window !== 'undefined') window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+        /* best-effort local cleanup */
+    }
+}

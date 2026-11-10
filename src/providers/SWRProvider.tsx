@@ -84,7 +84,9 @@ export function readPersistedCache(map: Map<string, unknown>) {
     }
 
     for (const [key, value] of Object.entries(persisted.entries)) {
-        map.set(key, value);
+        // Never clobber a response that already arrived this session: hydration can
+        // run after the first fetches, and the fresh payload is newer than the blob.
+        if (!map.has(key)) map.set(key, value);
     }
 }
 

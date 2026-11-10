@@ -9,7 +9,11 @@ Use the public discovery resources first:
 
 ## MCP server (preferred)
 
-If your client speaks MCP, connect to `https://www.datalyst.one/api/mcp` (Streamable HTTP) with the header `Authorization: Bearer <key>`. Tools: list_trackers, get_today, log_checkin, get_entries, get_correlations, list_experiments, create_experiment, get_experiment_results, export_data. Setup guide: https://datalyst.one/docs/agent-api#connect-an-agent
+If your client speaks MCP, connect to `https://www.datalyst.one/api/mcp` (Streamable HTTP) with the header `Authorization: Bearer <key>`. Tools: list_trackers, get_today, log_checkin, get_entries, get_correlations, list_experiments, create_experiment, get_experiment_results, export_data, parse_log, create_tracker.
+
+Research studies need a key with the research scopes. Tools: get_study_protocol_schema, create_study_draft (research:write), list_studies and get_study_evidence (research:read). A draft never recruits anybody and never accepts consent: the researcher opens recruitment in Lab. Study evidence is pseudonymous, not anonymous, and an ordinary read key cannot reach it.
+
+Setup guide: https://datalyst.one/docs/agent-api#connect-an-agent
 
 ## REST workflow
 

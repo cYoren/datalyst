@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { enqueue, flush, pendingCount } from './offlineQueue';
+import { clearPendingCheckIns, enqueue, flush, pendingCount } from './offlineQueue';
 
 const OWNER = 'user-a';
 const OTHER = 'user-b';
@@ -61,8 +61,11 @@ describe('offline check-in queue', () => {
     });
 
     it('ignores writes and flushes without an owner', async () => {
-        enqueue(item('a', 1), undefined);
-        expect(pendingCount(OWNER)).toBe(0);
+        // The caller has to know it was not queued: returning true here would let
+        // the UI report a save that will never happen.
+        expect(enqueue(item('a', 1), undefined)).toBe(false);
+        expect(enqueue(item('a', 1), OWNER)).toBe(true);
+        expect(pendingCount(OWNER)).toBe(1);
         const post = vi.fn();
         expect(await flush(post, undefined)).toBe(0);
         expect(post).not.toHaveBeenCalled();
@@ -73,5 +76,35 @@ describe('offline check-in queue', () => {
         enqueue(item('a', 2), OTHER);
         expect(pendingCount(OWNER)).toBe(1);
         expect(pendingCount(OTHER)).toBe(1);
+    });
+});
+
+describe('clearPendingCheckIns', () => {
+    beforeEach(() => window.localStorage.clear());
+
+    it('removes only the deleted account rows and keeps the other account', () => {
+        enqueue(item('a', 1), OWNER);
+        enqueue(item('b', 2), OTHER);
+        clearPendingCheckIns(OWNER);
+        expect(pendingCount(OWNER)).toBe(0);
+        expect(pendingCount(OTHER)).toBe(1);
+    });
+
+    it('leaves unowned rows from older builds alone, because they belong to nobody provably', () => {
+        enqueue(item('a', 1), OWNER);
+        window.localStorage.setItem('datalyst:pending-checkins-v1', JSON.stringify([
+            ...JSON.parse(window.localStorage.getItem('datalyst:pending-checkins-v1') || '[]'),
+            { habitId: 'h', subvariableId: 'legacy', numericValue: 3, logicalDate: '2026-11-09' },
+        ]));
+        clearPendingCheckIns(OWNER);
+        expect(pendingCount(OWNER)).toBe(0);
+        expect(window.localStorage.getItem('datalyst:pending-checkins-v1')).toContain('legacy');
+    });
+
+    it('does nothing without an account', () => {
+        enqueue(item('a', 1), OWNER);
+        clearPendingCheckIns(undefined);
+        clearPendingCheckIns(null);
+        expect(pendingCount(OWNER)).toBe(1);
     });
 });

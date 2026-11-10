@@ -49,17 +49,29 @@ export function pendingCount(ownerId: string | undefined): number {
 }
 
 /** Later saves of the same variable and day replace earlier ones, per account. */
-export function enqueue(item: QueuedCheckIn, ownerId: string | undefined) {
-    if (!ownerId) return; // nothing can be attributed, so nothing is queued
+export function enqueue(item: QueuedCheckIn, ownerId: string | undefined): boolean {
+    if (!ownerId) return false; // nothing can be attributed, so nothing is queued
     write([
         ...read().filter((q) => !(q.subvariableId === item.subvariableId && q.logicalDate === item.logicalDate && q.ownerId === ownerId)),
         { ...item, ownerId },
     ]);
+    return true;
 }
 
 /** A thrown fetch (not an HTTP error status) means the request never reached us. */
 export function isNetworkFailure(error: unknown): boolean {
     return error instanceof TypeError || (typeof navigator !== 'undefined' && navigator.onLine === false);
+}
+
+/**
+ * Delete only this account's queued check-ins, after the server confirms the
+ * account is gone. Rows without an owner (older builds) are left alone: they
+ * cannot be attributed to anyone, so deleting them would be guessing.
+ */
+export function clearPendingCheckIns(ownerId: string | null | undefined): void {
+    if (typeof window === 'undefined' || !ownerId) return;
+    const remaining = read().filter((item) => item.ownerId !== ownerId);
+    write(remaining);
 }
 
 let flushing = false;

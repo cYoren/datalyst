@@ -269,6 +269,9 @@ const tools: Tool[] = [
 
 const toolsByName = new Map(tools.map((t) => [t.name, t]));
 
+/** Scope required by each tool. Kept out of the MCP payload, which has no such field. */
+export const toolScopes: Readonly<Record<string, ApiKeyScope>> = Object.fromEntries(tools.map((t) => [t.name, t.scope]));
+
 export const toolList = tools.map((t) => {
     const { $schema: _ignored, ...inputSchema } = z.toJSONSchema(t.input, { io: 'input', unrepresentable: 'any' }) as Record<string, unknown>;
     void _ignored;
