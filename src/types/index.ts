@@ -27,6 +27,12 @@ export interface SubvariableMetadata {
     step?: number;
     labels?: string[];
     options?: string[];
+    /**
+     * How several entries in one day add up. `sum` marks an event counter such as a
+     * dose of caffeine (each entry is one event, the day is the total); the default
+     * keeps one reading per entry.
+     */
+    aggregation?: 'sum';
 }
 
 export interface InsightData {

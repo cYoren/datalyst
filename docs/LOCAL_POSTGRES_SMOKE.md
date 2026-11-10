@@ -1,5 +1,7 @@
 # Disposable study database checks
 
+Status: current
+
 Run `node scripts/test-studies-postgres.mjs` with native PostgreSQL tools (`initdb`, `pg_ctl`, `createdb`, `psql`) installed. The script creates a private `/tmp/datalyst-pg-smoke-*` cluster, listens only on its private Unix socket, and deletes the cluster after stopping it. No existing database, repository dotenv file, PostgreSQL service/passfile or app credential is used. Its subprocess environment is an explicit allowlist and its database URL is generated internally.
 
 The script renders the current Prisma schema offline using an explicit dotenv-free temporary Prisma configuration. It simulates the pre-study schema by removing only study tables inside the disposable database, applies the study migration twice, and tests real services against PostgreSQL. Legacy SQLite migration history is intentionally not replayed; this does not establish a production Postgres baseline or authorize migration deployment.

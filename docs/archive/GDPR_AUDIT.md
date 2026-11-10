@@ -1,5 +1,7 @@
 # GDPR Audit and Checklist
 
+Status: historical (2026-01-23) — archived 2026-11-08; kept for provenance.
+
 Date: 2026-01-23
 Scope: Codebase review only (no production config, DB contents, or legal docs). This is not legal advice.
 Context: Company is based in Brazil. LGPD applies; GDPR also applies if you target or serve EU/EEA users.

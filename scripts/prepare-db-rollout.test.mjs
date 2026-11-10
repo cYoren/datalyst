@@ -8,7 +8,7 @@ test('offline artifacts are deterministic, ordered, transactional and exclude en
   try {
     const first = prepare();
     assert.deepEqual(prepare(), first);
-    assert.equal(migrationPaths.length, 5);
+    assert.equal(migrationPaths.length, 6);
     assert.equal(first.manifest.productionTargetVerified, false);
     assert.doesNotMatch(JSON.stringify(first), /SYNTHETIC_SECRET_SENTINEL|unrelated\.invalid/);
     const apply = first.files['apply.sql'];

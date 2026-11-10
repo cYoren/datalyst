@@ -1,7 +1,14 @@
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import s from './landing.module.css';
+import { BRAND, withCanonical } from '@/lib/brand';
+
+export const metadata: Metadata = withCanonical('/', {
+  title: BRAND.title,
+  description: BRAND.description,
+});
 
 const RESEARCH_MAIL = 'mailto:support@datalyst.one?subject=Research%20access';
 
@@ -58,15 +65,15 @@ export default function Home() {
 
       <main className={s.frame}>
         <section className={s.section}>
-          <div className={s.label}><span><b>01</b> / Personal science</span><span>iOS · Android · Web</span></div>
+          <div className={s.label}><span><b>01</b> / Symptom and habit tracker</span><span>iOS · Android · Web</span></div>
           <div className={s.hero}>
             <div className={s.heroCopy}>
               <h1 className={s.h1}>
-                Your habits leave data. Datalyst turns it into <span className={s.accent}>evidence</span>.
+                Log symptoms and habits and discover what affects your <span className={s.accent}>health</span>.
               </h1>
               <p className={s.lede}>
-                Log a few numbers a day. Datalyst helps investigate patterns in your sleep, energy and mood,
-                with real correlations, p values and randomized self experiments.
+                Track symptoms, sleep, energy and habits. Discover patterns and run personal experiments,
+                whether you are managing symptoms or biohacking your routine.
               </p>
               <div className={s.actions}>
                 <Link href="/register" className={`${s.btn} ${s.btnSolid}`}>
@@ -118,8 +125,7 @@ export default function Home() {
           <div className={s.intro}>
             <h2 className={s.h2}>From guessing to <span className={s.accentTeal}>knowing</span> in three steps.</h2>
             <p className={s.body}>
-              Most trackers stop at a streak. Datalyst keeps going: it measures which habits move together,
-              then lets you test the ones that matter with a proper trial.
+              Log symptoms and habits, see what moves together, then test the pattern that matters to how you feel.
             </p>
           </div>
           <div className={s.lineup}>
@@ -133,8 +139,8 @@ export default function Home() {
                 </div>
               </div>
               <div className={s.cardCopy}>
-                <h3 className={s.h3}>Log your day in under a minute.</h3>
-                <p className={s.body}>Sleep, mood, caffeine, training, symptoms: anything you can count or rate. A home screen widget and a daily reminder keep it effortless.</p>
+                <h3 className={s.h3}>Log a symptom or a habit in under a minute.</h3>
+                <p className={s.body}>Migraine, sleep, mood, caffeine, a walk: anything you can count or rate. A daily check-in keeps it short. For doses, one tap per cup, and Datalyst shows what is still in you when you go to bed.</p>
               </div>
             </article>
 
@@ -151,8 +157,8 @@ export default function Home() {
                 </div>
               </div>
               <div className={s.cardCopy}>
-                <h3 className={s.h3}>Find what moves together.</h3>
-                <p className={s.body}>Pearson and Spearman correlations with p values across every pair of variables, so a pattern is a number, not a hunch.</p>
+                <h3 className={s.h3}>See what lines up with how you feel.</h3>
+                <p className={s.body}>Correlations across your symptoms and habits, so a pattern is a number, not a hunch. A pattern is not proof of cause.</p>
               </div>
             </article>
 
@@ -173,8 +179,8 @@ export default function Home() {
                 </div>
               </div>
               <div className={s.cardCopy}>
-                <h3 className={s.h3}>Prove it with a real trial.</h3>
-                <p className={s.body}>Turn a correlation into a randomized self experiment. Datalyst schedules the days, tracks compliance and tells you if the effect is real.</p>
+                <h3 className={s.h3}>Test it with a personal trial.</h3>
+                <p className={s.body}>Turn a question into a randomized self experiment. Datalyst schedules the days, tracks compliance and helps you assess the results.</p>
               </div>
             </article>
           </div>
@@ -206,9 +212,9 @@ export default function Home() {
           </div>
           <div className={s.audiences}>
             <div className={s.audience}>
-              <span className={`${s.tag} ${s.tagViolet}`} style={{ alignSelf: 'flex-start' }}>Self experimenters</span>
-              <h3 className={s.h3}>Answer your own questions.</h3>
-              <p className={s.body}>Does magnesium help your sleep? Does late training hurt it? Get an answer you can trust.</p>
+              <span className={`${s.tag} ${s.tagViolet}`} style={{ alignSelf: 'flex-start' }}>Biohackers and self experimenters</span>
+              <h3 className={s.h3}>Find what works for you.</h3>
+              <p className={s.body}>Track sleep, energy, caffeine and training together. Explore your patterns, then test a change with a personal experiment.</p>
             </div>
             <div className={s.audience}>
               <span className={`${s.tag} ${s.tagTeal}`} style={{ alignSelf: 'flex-start' }}>Clinicians and coaches</span>
@@ -226,8 +232,8 @@ export default function Home() {
         <section className={s.section}>
           <div className={s.label}><span><b>04</b> / Start</span><span>Free to start</span></div>
           <div className={s.cta}>
-            <h2 className={s.h2}>Start with one honest <span className={s.accent}>observation</span>.</h2>
-            <p className={s.lede}>Build a clearer instruction manual for your own life, one data point at a time.</p>
+            <h2 className={s.h2}>Start with how you <span className={s.accent}>feel</span> today.</h2>
+            <p className={s.lede}>Log one symptom and one habit. Datalyst takes it from there.</p>
             <Link href="/register" className={`${s.btn} ${s.btnSolid}`}>Create free account <ArrowRight size={16} aria-hidden="true" /></Link>
           </div>
         </section>

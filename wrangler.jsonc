@@ -1,14 +1,30 @@
 {
+  // datalyst.one. Build + publish: npm run deploy (env from ~/.config/cf-sites/datalyst.env).
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  "main": "cloudflare-worker.ts",
   "name": "datalyst-web",
-  "compatibility_date": "2026-08-14",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // sw.js caches /offline.html; a redirect to /offline makes that cached page unusable on navigation.
+    "html_handling": "none"
   },
-  "observability": {
-    "enabled": true
-  }
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "datalyst-web" }],
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "datalyst-next-cache" }],
+  // Query cache off: users must read their own check-ins right after writing them.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "b1d0c2ad9df9467abb2268bc5cb25817" }],
+  "images": { "binding": "IMAGES" },
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  // A request runs many queries, so run it next to the database in us-east-1.
+  "placement": { "mode": "smart" },
+  // Same schedule as the old vercel.json cron (UTC).
+  "triggers": { "crons": ["0 3 * * *"] },
+  "observability": { "enabled": true },
+  "routes": [
+    { "pattern": "datalyst.one/*", "zone_name": "datalyst.one" },
+    { "pattern": "www.datalyst.one/*", "zone_name": "datalyst.one" }
+  ],
+  "workers_dev": true
 }

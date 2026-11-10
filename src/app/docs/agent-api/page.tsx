@@ -5,14 +5,15 @@
  */
 
 import { Metadata } from 'next';
+import { siteOrigin, withCanonical } from '@/lib/brand';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withCanonical('/docs/agent-api', {
     title: 'Agent API Documentation | Datalyst',
-    description: 'API documentation for AI agents to run N=1 scientific experiments',
-};
+    description: 'API documentation for reading symptoms and habits, logging check-ins, and running personal experiments.',
+});
 
 export default function AgentApiDocsPage() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://datalyst.one';
+    const baseUrl = siteOrigin();
 
     return (
         <div className="min-h-screen bg-[var(--color-bg-subtle)] ">
@@ -252,7 +253,7 @@ export default function AgentApiDocsPage() {
                 {/* Rate Limits */}
                 <section className="bg-[var(--color-bg-card)] rounded-[var(--radius-card)] p-6 ">
                     <h2 className="text-2xl font-semibold mb-4 text-[var(--color-text-primary)] ">
-                        ⏱️ Rate Limits
+                        Rate Limits
                     </h2>
                     <table className="w-full text-left">
                         <thead>

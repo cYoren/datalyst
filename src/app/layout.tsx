@@ -5,15 +5,16 @@ import { CookieNotice } from "@/components/ui/CookieNotice";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { NativeAuthCallback } from "@/components/auth/NativeAuthCallback";
 import { WebMcpTools } from "@/components/agent/WebMcpTools";
+import { BRAND, siteOrigin } from "@/lib/brand";
 
 const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Datalyst — Free Habit Tracker & Correlation Analysis",
-  description: "Track daily habits and discover real statistical relationships. Datalyst runs Pearson and Spearman analysis with p-values to show what tends to move with your sleep, energy, and focus. Free.",
-  keywords: ["habit tracker", "habit tracking", "daily habit tracker", "correlation analysis", "sleep tracker", "quantified self", "personal analytics", "lifestyle tracking", "self-optimization", "statistical habit tracker", "habit correlation"],
+  title: BRAND.title,
+  description: BRAND.description,
+  keywords: ["symptom tracker", "habit tracker", "symptom and habit tracker", "health tracker", "migraine tracker", "sleep tracker", "mood tracker", "biohacking tracker", "biohacking app", "quantified self", "self experimentation", "personal health log"],
   authors: [{ name: "Datalyst" }],
   creator: "Datalyst",
   verification: {
@@ -23,19 +24,19 @@ export const metadata: Metadata = {
     },
   },
   manifest: "/manifest.json",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://datalyst.one"),
+  metadataBase: new URL(siteOrigin()),
   openGraph: {
     type: "website",
     locale: "en_US",
     siteName: "Datalyst",
-    url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://datalyst.one",
-    title: "Datalyst — Free Habit Tracker & Correlation Analysis",
-    description: "Log daily habits. After 14 days, Datalyst runs real statistical analysis and shows what tends to move with your sleep, energy, and focus. Free.",
+    url: siteOrigin(),
+    title: BRAND.title,
+    description: BRAND.ogDescription,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Datalyst — Free Habit Tracker & Correlation Analysis",
-    description: "Real statistics on your daily habits. Pearson correlations, p-values, and experiments, not just streaks.",
+    title: BRAND.title,
+    description: BRAND.tagline,
   },
   appleWebApp: {
     capable: true,
@@ -81,9 +82,9 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "Datalyst",
-              "description": "Habit tracker that runs real statistical correlations (Pearson, Spearman) to reveal what actually affects your sleep, energy, and focus.",
-              "url": process.env.NEXT_PUBLIC_SITE_URL ?? "https://datalyst.one",
-              "applicationCategory": "HealthAndFitnessApplication",
+              "description": BRAND.shortPitch,
+              "url": siteOrigin(),
+              "applicationCategory": "HealthApplication",
               "operatingSystem": "Web, iOS, Android",
               "offers": {
                 "@type": "Offer",
@@ -91,10 +92,12 @@ export default function RootLayout({
                 "priceCurrency": "USD"
               },
               "featureList": [
-                "Habit tracking with custom variables",
-                "Pearson and Spearman correlation analysis",
-                "p-value statistical significance testing",
-                "Interactive data visualizations"
+                "Symptom logging",
+                "Habit logging",
+                "Correlations between habits and symptoms",
+                "Personal history and charts",
+                "Randomized personal experiments",
+                "Biohacking and quantified self tracking"
               ]
             })
           }}

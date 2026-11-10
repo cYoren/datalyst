@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { purgeRetention } from '@/lib/retention';
 
 const authorize = (request: NextRequest) => {
-    const vercelCronHeader = request.headers.get('x-vercel-cron');
-    if (vercelCronHeader) return true;
     const secret = process.env.RETENTION_TASK_SECRET;
     if (!secret) return false;
     const authHeader = request.headers.get('authorization');

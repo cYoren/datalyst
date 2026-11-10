@@ -46,6 +46,14 @@
     --radius-button: 8px;
     --radius-input: 8px;
 
+    /* Motion: one curve family, three durations. Press is the ceiling for
+       something touched many times a day; panels and toasts settle under 300ms. */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --duration-press: 120ms;
+    --duration-reveal: 180ms;
+    --duration-panel: 200ms;
+
     --bg-app: var(--color-bg-app);
     --bg-card: var(--color-bg-card);
     --bg-subtle: var(--color-bg-subtle);
@@ -125,6 +133,18 @@
   .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-reveal-stagger { animation: revealStagger 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  /* A dialog: the backdrop settles with the panel instead of a slow 400ms fade. */
+  .animate-backdrop-in { animation: fadeIn var(--duration-panel) var(--ease-out) forwards; }
+  /* Uninvited, so quicker and quieter than motion the user asked for. */
+  .animate-toast-in { animation: toastIn 250ms var(--ease-out) forwards; }
+  /* Press feedback: 3% scale on press-in, colours settle alongside. */
+  .pressable {
+    transition: transform var(--duration-press) var(--ease-out),
+      background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .pressable:active { transform: scale(0.97); }
+  }
   .paper-lift { transition: background-color 0.15s ease; }
   .tabular-nums { font-variant-numeric: tabular-nums; }
   .font-display { font-family: var(--font-display); }
@@ -143,6 +163,7 @@
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes revealStagger { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes toastIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* Form focus and route navigation must settle immediately above mobile navigation. */
 html:has([data-app-shell]) {

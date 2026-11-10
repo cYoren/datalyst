@@ -12,11 +12,11 @@ export default function AboutPage() {
                     <FlaskConical className="h-8 w-8 text-[var(--color-accent)]" suppressHydrationWarning />
                 </div>
                 <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">
-                    Personal Science Laboratory
+                    Symptom and habit tracker
                 </h1>
                 <p className="text-xl text-[var(--text-secondary)] leading-relaxed">
-                    Datalyst is your platform for <strong>N=1 experimentation</strong>.
-                    Stop guessing what works. Start testing with data.
+                    Log symptoms and habits and discover what affects your health.
+                    Datalyst shows how what you do relates to how you feel.
                 </p>
             </header>
 
@@ -27,12 +27,11 @@ export default function AboutPage() {
                         <Target className="h-6 w-6 text-[var(--color-accent)]" suppressHydrationWarning />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2">The Core Philosophy</h2>
+                        <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2">Health first</h2>
                         <p className="text-[var(--text-secondary)]">
-                            Unlike habit trackers that encourage doing the same thing every day,
-                            Datalyst encourages <strong>Interventions</strong>: systematically changing variables
-                            to discover what actually affects your life. Does &quot;No Coffee&quot; improve your &quot;Sleep Quality&quot;?
-                            Stop guessing. Find out.
+                            Log a symptom and the habits around it. Datalyst looks for patterns,
+                            then lets you test a change. Does skipping coffee after 2pm change your sleep?
+                            A pattern in the log is not proof. The Lab is where you check.
                         </p>
                     </div>
                 </div>
@@ -42,12 +41,12 @@ export default function AboutPage() {
                 <Card className="p-8 border-l-4 border-l-[var(--color-accent)]">
                     <h2 className="text-2xl font-bold mb-4 flex items-center gap-3">
                         <FlaskConical className="h-6 w-6 text-[var(--color-accent)]" suppressHydrationWarning />
-                        Protocols, Not Habits
+                        Symptoms, habits, and how you feel
                     </h2>
                     <p className="text-[var(--text-secondary)] leading-relaxed">
-                        We call them <strong>Protocols</strong> because you&apos;re running experiments, not building routines.
-                        Each protocol tracks multiple <strong>variables</strong>: inputs you control (caffeine, sleep time, exercise)
-                        and outputs you measure (energy, mood, focus). The data reveals which interventions work for <em>you</em>.
+                        Each tracker records what you do and how you feel. Inputs you can change (caffeine, sleep, a walk)
+                        sit next to symptoms you measure (pain, energy, mood). The data shows which habits line up with
+                        your symptoms.
                     </p>
                 </Card>
 
@@ -113,7 +112,7 @@ export default function AboutPage() {
                 <ol className="space-y-3 text-[var(--text-secondary)]">
                     <li className="flex gap-3">
                         <span className="font-bold text-[var(--color-accent)]">1.</span>
-                        <span><strong>Create Protocols</strong>: Track what you do (inputs) and how you feel (outputs)</span>
+                        <span><strong>Create trackers</strong>: Log symptoms and the habits around them</span>
                     </li>
                     <li className="flex gap-3">
                         <span className="font-bold text-[var(--color-accent)]">2.</span>

@@ -87,7 +87,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
         <div
             className={cn(
                 "pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-[var(--radius-card)] border bg-[var(--color-bg-subtle)] shadow-[var(--shadow-elevated)]",
-                "animate-slide-up min-w-[280px] max-w-[400px]",
+                "animate-toast-in min-w-[280px] max-w-[400px]",
                 backgrounds[toast.type]
             )}
         >

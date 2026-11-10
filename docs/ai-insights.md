@@ -1,5 +1,7 @@
 # Evidence insights
 
+Status: current
+
 AI insights are explicitly opt-in in Settings. The provider receives only numbered
 correlation facts (coefficient, p-value, sample size, method) and whether each fact
 can support a plan with two distinct trackers. It receives no names,
@@ -14,8 +16,8 @@ against that same tracker. A response may contain findings with no selected plan
 
 ## Configuration
 
-Apply the reviewed additive SQL migration before deploying. The repository's
-legacy SQLite migration history cannot yet be used with `prisma migrate deploy`.
+Apply the reviewed additive SQL migration before deploying, by hand or through
+`prisma migrate deploy` once the database is baselined (`docs/MIGRATION_BASELINE.md`).
 
 - Any LLM: `AI_MODEL` + `AI_API_KEY` (+ `AI_BASE_URL` for any OpenAI-compatible API, `AI_PROVIDER=anthropic` for Claude). See `src/ai/config.ts`. Absent means unavailable, never fake output.
 - Legacy: `DEEPSEEK_API_KEY`: server-side credential.

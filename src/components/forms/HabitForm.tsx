@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TrackerIcon, TRACKER_ICONS, DEFAULT_TRACKER_ICON } from '@/components/ui/TrackerIcon';
+import { TrackerIcon, TRACKER_ICONS, DEFAULT_TRACKER_ICON, resolveTrackerIcon } from '@/components/ui/TrackerIcon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -281,7 +281,7 @@ export const HabitForm = ({ initialData, onSubmit, isSubmitting }: HabitFormProp
                             { value: 'MORNING', label: 'Morning' },
                             { value: 'AFTERNOON', label: 'Afternoon' },
                             { value: 'EVENING', label: 'Evening' },
-                            { value: 'ANYTIME', label: '⏰ Anytime' }
+                            { value: 'ANYTIME', label: 'Anytime' }
                         ] as const).map((opt) => (
                             <button
                                 key={opt.value}
@@ -349,13 +349,14 @@ export const HabitForm = ({ initialData, onSubmit, isSubmitting }: HabitFormProp
                                 type="button"
                                 onClick={() => setIcon(i)}
                                 className={cn(
-                                    "h-10 w-10 rounded-[var(--radius-card)] flex items-center justify-center text-xl transition-all border",
-                                    icon === i
+                                    "h-11 w-11 rounded-[var(--radius-card)] flex items-center justify-center transition-colors border",
+                                    resolveTrackerIcon(icon) === TRACKER_ICONS[i]
                                         ? "bg-[var(--color-accent-light)] border-[var(--color-accent)]"
                                         : "bg-[var(--color-control-bg)] border-[var(--color-control-border)] hover:bg-[var(--color-control-bg-hover)]"
                                 )}
-                                aria-label={i}
-                                aria-pressed={icon === i}
+                                aria-label={i.replace(/-/g, ' ')}
+                                title={i.replace(/-/g, ' ')}
+                                aria-pressed={resolveTrackerIcon(icon) === TRACKER_ICONS[i]}
                             >
                                 <TrackerIcon value={i} className="h-5 w-5" />
                             </button>

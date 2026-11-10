@@ -7,7 +7,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'com.android.tools.build:gradle:9.1.1'
+        // AGP 9 also loads KGP. Pin it at the root to match Capacitor Health's
+        // Kotlin metadata rather than letting AGP's older default win.
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20'
         classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong

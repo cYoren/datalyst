@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { ensureUserExists } from '@/lib/ensure-user';
 import { DEMO_PROTOCOLS, generateMockEntries } from '@/lib/demo-data';
 
 /**
@@ -16,8 +17,9 @@ export async function DELETE() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // By id, not by email: the email can belong to another identity's row.
         const dbUser = await prisma.user.findUnique({
-            where: { email: user.email! }
+            where: { id: user.id }
         });
 
         if (!dbUser) {
@@ -64,21 +66,8 @@ export async function POST() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check if user exists in our database
-        let dbUser = await prisma.user.findUnique({
-            where: { email: user.email! }
-        });
-
-        if (!dbUser) {
-            dbUser = await prisma.user.create({
-                data: {
-                    id: user.id,
-                    email: user.email!,
-                    name: user.user_metadata?.name || user.email!.split('@')[0],
-                    onboardingCompleted: false
-                }
-            });
-        }
+        // Same identity rule as every other route: never adopt a row by email.
+        const dbUser = await ensureUserExists(user.id, user.email!);
 
         // Check if user already has protocols (don't overwrite)
         const existingHabits = await prisma.habit.count({

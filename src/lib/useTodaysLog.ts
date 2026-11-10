@@ -3,6 +3,7 @@
 import useSWR, { mutate as mutateGlobal } from 'swr';
 import { useCallback, useEffect, useState } from 'react';
 import { enqueue, flush, isNetworkFailure, pendingCount, type QueuedCheckIn } from './offlineQueue';
+import { useUser } from '@/lib/hooks';
 import { formatLocalDateKey } from '@/lib/dateUtils';
 import { recordCheckIn } from './reviewPrompt';
 import { syncWidget } from './widget';
@@ -97,6 +98,10 @@ const fetcher = async (url: string) => {
  */
 export function useTodaysLog() {
     const [authExpired, setAuthExpired] = useState(false);
+    // Offline check-ins belong to an account: the queue is replayed under whoever
+    // is signed in, so it must be filtered by the owner that wrote it.
+    const { user } = useUser();
+    const ownerId = user?.id;
     // Keyed by the device's local day: the server must not decide what "today" is,
     // and a new key after midnight fetches the new day.
     const todayKey = `/api/dashboard/today?date=${formatLocalDateKey(new Date())}`;
@@ -134,18 +139,18 @@ export function useTodaysLog() {
     // Replay check-ins saved while offline: on load, and when the connection returns.
     useEffect(() => {
         const replay = async () => {
-            setPending(pendingCount());
-            if (!pendingCount()) return;
-            if (await flush(postQuick)) {
+            setPending(pendingCount(ownerId));
+            if (!pendingCount(ownerId)) return;
+            if (await flush(postQuick, ownerId)) {
                 void mutate();
                 void mutateGlobal('/api/data');
             }
-            setPending(pendingCount());
+            setPending(pendingCount(ownerId));
         };
         void replay();
         window.addEventListener('online', replay);
         return () => window.removeEventListener('online', replay);
-    }, [postQuick, mutate]);
+    }, [postQuick, mutate, ownerId]);
 
     const logVariable = async (
         habitId: string,
@@ -187,8 +192,8 @@ export function useTodaysLog() {
                 return await postQuick(payload);
             } catch (error) {
                 if (!isNetworkFailure(error)) throw error;
-                enqueue(payload);
-                setPending(pendingCount());
+                enqueue(payload, ownerId);
+                setPending(pendingCount(ownerId));
                 queued = true;
                 return null;
             }

@@ -1,11 +1,11 @@
 const body = `---
 title: Datalyst
-description: Habit tracking and N=1 experiment analysis with real statistical correlations.
+description: Symptom and habit tracking. See how what you do relates to how you feel, with real statistical correlations.
 ---
 
 # Datalyst
 
-Datalyst helps users track habits, run N=1 experiments, and inspect statistical relationships between daily inputs and outcomes.
+Datalyst is a symptom and habit tracker. People log how they feel and what they do, then inspect how those records relate. It can also run personal experiments.
 
 ## Public resources
 
@@ -27,7 +27,7 @@ The REST agent API accepts the same key in an X-API-Key or Authorization: Bearer
 
 ## Data boundary
 
-Datalyst handles personal habit and health-related data. Use only data for which the user has authority and follow the API's ownership, retention, and consent rules. Statistical associations are not medical diagnoses or guarantees.
+Datalyst handles personal symptom, habit, and health-related data. Use only data for which the user has authority and follow the API's ownership, retention, and consent rules. Statistical associations are not medical diagnoses or guarantees.
 `;
 
 export function GET() {

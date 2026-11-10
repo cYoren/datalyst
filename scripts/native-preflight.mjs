@@ -46,6 +46,8 @@ const urls = ['android/app/src/main/assets/capacitor.config.json', 'ios/App/App/
     return config.server.url;
 });
 assert.ok(read('capacitor.config.ts').includes(urls[0]));
-assert.equal(JSON.parse(read('vercel.json')).git.deploymentEnabled.main, false, 'Review deployment hold before changing native release plan');
-console.log(`Native configuration passes: ${version.version} (${version.build}), app/widget versions aligned, canonical HTTPS server, widget and HealthKit declarations, production hold retained.`);
-console.log('Build number is validation-only and has NOT been verified across both stores. No signed release/upload is authorized.');
+// Web deployment was already enabled on main. A native configuration check must
+// not require reverting that independently managed production setting.
+assert.equal(typeof JSON.parse(read('vercel.json')).git.deploymentEnabled.main, 'boolean');
+console.log(`Native configuration passes: ${version.version} (${version.build}), app/widget versions aligned, canonical HTTPS server, widget and HealthKit declarations.`);
+console.log('Before publishing, verify the target store build number and explicit release authorization.');

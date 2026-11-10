@@ -8,7 +8,7 @@ export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const migrationPaths = [
   '20261006000000_api_key_hashes', '20261006120000_health_import',
   '20261007120000_add_studies', '20261007150000_ai_insights',
-  '20261007153000_experiment_attestations',
+  '20261007153000_experiment_attestations', '20261008000000_ai_usage_fk_on_update',
 ].map(name => `prisma/migrations/${name}/migration.sql`);
 export const serverOnly = ['ApiKey', 'Assignment', 'Protocol', 'HealthImportConnection', 'Study', 'StudyMember', 'StudyParticipant', 'StudyConsent', 'AiDailyUsage', 'InsightsCache', 'ExperimentAttestation'];
 const hash = value => createHash('sha256').update(value).digest('hex');

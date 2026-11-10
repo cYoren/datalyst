@@ -1,5 +1,7 @@
 # Privacy Operations
 
+Status: current
+
 This document describes operational steps for LGPD/GDPR requests and data retention. Adjust dates, contacts, and timelines as needed.
 
 ## Data Subject Requests (DSAR)
@@ -21,7 +23,7 @@ This document describes operational steps for LGPD/GDPR requests and data retent
 - UserEvent: default 365 days.
 - InsightsCache: default 30 days or until `expiresAt`.
 - Purge job: call `/api/admin/retention` with `Authorization: Bearer $RETENTION_TASK_SECRET` on a schedule.
-  - Vercel: `vercel.json` schedules a daily cron at 03:00 UTC and the endpoint accepts the `x-vercel-cron` header.
+  - Cloudflare: `wrangler.jsonc` schedules a daily cron at 03:00 UTC and `cloudflare-worker.ts` calls the endpoint with `RETENTION_TASK_SECRET`.
   - Configure `RETENTION_SESSION_LOG_DAYS`, `RETENTION_USER_EVENT_DAYS`, and `RETENTION_INSIGHTS_DAYS` as needed.
 
 ## Security and Incident Response

@@ -1,11 +1,11 @@
 {
     "name": "Datalyst",
     "short_name": "Datalyst",
-    "description": "Personal statistics tracking with intelligent insights",
+    "description": "Log symptoms and habits and discover what affects your health.",
     "start_url": "/dashboard",
     "display": "standalone",
-    "background_color": "#f2f5f8",
-    "theme_color": "#1b2732",
+    "background_color": "#121316",
+    "theme_color": "#121316",
     "orientation": "portrait-primary",
     "icons": [
         {

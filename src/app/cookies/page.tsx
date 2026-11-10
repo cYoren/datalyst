@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import { withCanonical } from '@/lib/brand';
+
+export const metadata = withCanonical('/cookies', {
+    title: 'Cookie Notice | Datalyst',
+    description: 'How Datalyst uses essential cookies to keep you signed in.',
+});
 
 export default function CookiesPage() {
     return (

@@ -33,8 +33,8 @@ export const Slider = ({
                 <div className="absolute w-full h-3 bg-[var(--color-bg-subtle)] rounded-full overflow-hidden">
                     {/* Active Track */}
                     <div
-                        className="h-full bg-[var(--color-accent)] transition-all duration-150 ease-out"
-                        style={{ width: `${percentage}%` }}
+                        className="h-full w-full origin-left bg-[var(--color-accent)] transition-transform duration-150 ease-out"
+                        style={{ transform: `scaleX(${percentage / 100})` }}
                     />
                 </div>
 
@@ -52,7 +52,7 @@ export const Slider = ({
 
                 {/* Visual Thumb (follows position) */}
                 <div
-                    className="absolute h-8 w-8 bg-[var(--color-bg-card)] border-2 border-[var(--color-accent)] rounded-full shadow-[var(--shadow-card)] z-10 pointer-events-none transition-all duration-150 ease-out flex items-center justify-center text-xs font-bold text-[var(--color-accent)] group-active:scale-110"
+                    className="absolute h-8 w-8 bg-[var(--color-bg-card)] border-2 border-[var(--color-accent)] rounded-full shadow-[var(--shadow-card)] z-10 pointer-events-none transition-transform duration-150 ease-out flex items-center justify-center text-xs font-bold text-[var(--color-accent)] group-active:scale-110"
                     style={{ left: `calc(${percentage}% - 16px)` }}
                 >
                     {value}

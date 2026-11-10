@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import { withCanonical } from '@/lib/brand';
+
+export const metadata = withCanonical('/privacy', {
+    title: 'Privacy Policy | Datalyst',
+    description: 'How Datalyst handles the symptoms, habits, and account data you choose to log.',
+});
 
 export default function PrivacyPage() {
     return (
@@ -12,7 +18,7 @@ export default function PrivacyPage() {
                 <section className="space-y-3 text-[var(--text-secondary)]">
                     <h2 className="text-xl font-semibold text-[var(--text-primary)]">Who we are</h2>
                     <p>
-                        Datalyst is a habit and self-experimentation platform and a project by Medhub, based in Brazil.
+                        Datalyst is a symptom and habit tracker and a project by Medhub, based in Brazil.
                         This policy applies to our websites, apps, and services.
                     </p>
                     <p>
@@ -24,7 +30,7 @@ export default function PrivacyPage() {
                     <h2 className="text-xl font-semibold text-[var(--text-primary)]">Data we collect</h2>
                     <ul className="list-disc pl-5 space-y-2">
                         <li>Account details: email, name, locale, timezone, theme.</li>
-                        <li>Habits and entries: logs, notes, and subvariable values.</li>
+                        <li>Symptoms, habits, and entries: logs, notes, and the values you record.</li>
                         <li>Usage logs: session timestamps and events.</li>
                         <li>Consent records for health-related data.</li>
                     </ul>
@@ -52,6 +58,18 @@ export default function PrivacyPage() {
                     <p>
                         We use service providers such as hosting, database, and authentication vendors. International
                         transfers may occur; we rely on contractual safeguards where required.
+                    </p>
+                </section>
+
+                <section className="space-y-3 text-[var(--text-secondary)]">
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Browser extension</h2>
+                    <p>
+                        The Datalyst quick log extension for Chrome, Firefox and Safari keeps only your connection key,
+                        in the browser&apos;s extension storage. When you press Read, the sentence you typed is sent to
+                        Datalyst, and our AI provider turns it into values for your trackers. When you press Log, only
+                        those values are saved to your account. The extension does not read the pages you visit, has no
+                        access to other sites and contains no ads or tracking. Disconnect removes the key; you can also
+                        revoke it in Settings.
                     </p>
                 </section>
 

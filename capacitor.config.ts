@@ -12,6 +12,10 @@ const config: CapacitorConfig = {
     androidScheme: 'https'
   },
   plugins: {
+    // MainActivity owns native insets, including older Android/WebView versions.
+    SystemBars: {
+      insetsHandling: 'disable',
+    },
     LocalNotifications: {
       smallIcon: 'ic_stat_datalyst',
     },

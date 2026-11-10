@@ -9,7 +9,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ key
     const headers = new Headers(request.headers);
     headers.delete('authorization'); // the key in the path wins
     headers.set('x-api-key', key);
-    return handleMcpPost(new Request(request.url, { method: 'POST', headers, body: await request.text() }));
+    // Tells the handler the credential arrived in a URL, which lands in request
+    // logs, so the key is restricted to read scopes there.
+    headers.set('x-api-key-transport', 'path');
+    const response = await handleMcpPost(new Request(request.url, { method: 'POST', headers, body: await request.text() }));
+    response.headers.set('Cache-Control', 'no-store');
+    return response;
 }
 
 export function GET() {

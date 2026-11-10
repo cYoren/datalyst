@@ -49,6 +49,8 @@ platform :ios do
     upload_to_app_store(
       api_key:           api_key,
       force:             true,
+      # Copy and screenshots are in fastlane/metadata and fastlane/screenshots.
+      # Leave these skips on until the listing should actually be uploaded.
       skip_metadata:     true,
       skip_screenshots:  true,
       submit_for_review: false
@@ -83,10 +85,16 @@ platform :android do
   lane :production do
     build_aab
     upload_to_play_store(
-      package_name:  PACKAGE_NAME,
-      track:         "production",
-      aab:           "../android/app/build/outputs/bundle/release/app-release.aab",
-      json_key:      GOOGLE_PLAY_KEY
+      package_name:             PACKAGE_NAME,
+      track:                    "production",
+      aab:                      "../android/app/build/outputs/bundle/release/app-release.aab",
+      json_key:                 GOOGLE_PLAY_KEY,
+      # Listing files are prepared under fastlane/metadata/android.
+      # A production binary upload does not change the store text or screenshots
+      # until these skips are removed on purpose.
+      skip_upload_metadata:     true,
+      skip_upload_images:       true,
+      skip_upload_screenshots:  true
     )
     UI.success "✅ Datalyst → Play Store production"
   end

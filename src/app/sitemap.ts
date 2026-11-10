@@ -1,16 +1,21 @@
 import { MetadataRoute } from 'next';
+import { canonicalUrl } from '@/lib/brand';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://datalyst.one';
-    const now = new Date();
+    // Omit lastmod until each page has a tracked content revision. A build or
+    // request timestamp does not mean its content changed.
+    const page = (path: string, changeFrequency: 'weekly' | 'monthly' | 'yearly', priority: number) => ({
+        url: canonicalUrl(path),
+        changeFrequency,
+        priority,
+    });
 
     return [
-        { url: baseUrl, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
-        { url: `${baseUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
-        { url: `${baseUrl}/docs/agent-api`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-        { url: `${baseUrl}/contact`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
-        { url: `${baseUrl}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-        { url: `${baseUrl}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-        { url: `${baseUrl}/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
+        page('/', 'weekly', 1.0),
+        page('/docs/agent-api', 'monthly', 0.6),
+        page('/contact', 'monthly', 0.4),
+        page('/privacy', 'yearly', 0.3),
+        page('/terms', 'yearly', 0.3),
+        page('/cookies', 'yearly', 0.2),
     ];
 }

@@ -1,5 +1,7 @@
 # Verifiable research records
 
+Status: current
+
 An experiment has two immutable, owner-only records: the plan at hypothesis lock and observations at completion. Results refer to the plan's EAS UID (`refUID`) and snapshot hash. Recursive canonical JSON includes nested observations and arrays. A random nonce in each private snapshot protects low-entropy plans from simple dictionary matching against public hashes. Signatures establish content integrity and signer control, not collection accuracy, causation, reproducibility, ethics approval, or medical validity.
 
 ## Configuration and operations
@@ -18,7 +20,7 @@ node --env-file=.env.local scripts/register-eas-schemas.mjs --register
 
 Set the printed `EAS_PREREG_SCHEMA_UID` and `EAS_RESULTS_SCHEMA_UID` after registration. The app checks chain ID, registered schema text, zero resolver and non-revocability. Results reference the same signer's preregistration. Keep the original signer available for the lifetime of each trial; rotation to a different signer cannot silently continue its proof chain.
 
-Apply `prisma/migrations/20261007153000_experiment_attestations/migration.sql` manually after review and before deploying code. It is idempotent PostgreSQL DDL; do not run `prisma migrate deploy` against the legacy SQLite migration history. The new table enables RLS with no browser policies: access goes through the authorized server. This implementation does not apply a migration, deploy, fund an account, register schemas, or submit a transaction during tests.
+Apply `prisma/migrations/20261007153000_experiment_attestations/migration.sql` after review and before deploying code, either through `prisma migrate deploy` once the database is baselined (`docs/MIGRATION_BASELINE.md`) or by hand. It is idempotent PostgreSQL DDL. The new table enables RLS with no browser policies: access goes through the authorized server. This implementation does not apply a migration, deploy, fund an account, register schemas, or submit a transaction during tests.
 
 ## Idempotency and recovery
 

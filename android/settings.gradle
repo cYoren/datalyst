@@ -1,3 +1,9 @@
 include ':app'
 
+// Apply the pinned dependency compatibility fix before Gradle evaluates plugins.
+providers.exec {
+    workingDir settingsDir.parentFile
+    commandLine 'node', 'scripts/prepare-android-plugins.mjs'
+}.result.get().assertNormalExitValue()
+
 apply from: 'capacitor.settings.gradle'

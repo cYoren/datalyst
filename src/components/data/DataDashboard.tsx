@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { EntryEditForm, type EntryEditFormProps } from '@/components/forms/EntryEditForm';
 import { format } from 'date-fns';
+import { buildDailyRows, isSummedVariable } from '@/lib/dailyChart';
 import { cn } from '@/lib/utils';
 import { chart } from '@/lib/chartTheme';
 import {
@@ -189,7 +190,18 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
         return () => window.clearTimeout(timeoutId);
     }, [allEntriesForDate, dateFilter, habits, openEditOnLoad]);
 
+    // A dose tracker logs several entries a day; its day is their total, so it gets
+    // one row per day instead of one point per entry.
+    const usesDailyTotals = useMemo(
+        () => (selectedHabit?.subvariables ?? []).some((sub: DashboardSubvariable) => isSummedVariable(sub)),
+        [selectedHabit]
+    );
+
     const chartData = useMemo(() => {
+        if (usesDailyTotals && selectedHabit) {
+            return buildDailyRows(visibleEntries, selectedHabit.subvariables) as ChartPoint[];
+        }
+
         return visibleEntries.map(entry => {
             const dataPoint: ChartPoint = {
                 date: format(new Date(entry.logicalDate), 'MM/dd'),
@@ -208,7 +220,7 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
             });
             return dataPoint;
         });
-    }, [visibleEntries, selectedHabit]);
+    }, [usesDailyTotals, visibleEntries, selectedHabit]);
 
     const movingAverageData = useMemo(() => {
         const windowSize = 5;

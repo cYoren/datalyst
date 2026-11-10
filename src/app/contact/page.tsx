@@ -1,4 +1,10 @@
 import Link from 'next/link';
+import { withCanonical } from '@/lib/brand';
+
+export const metadata = withCanonical('/contact', {
+    title: 'Contact | Datalyst',
+    description: 'Contact Datalyst about your account, privacy, or the symptom and habit tracker.',
+});
 
 export default function ContactPage() {
     return (

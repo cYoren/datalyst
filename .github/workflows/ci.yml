@@ -20,6 +20,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Migration history
+        run: npm run check:migrations
       - name: Lint (advisory)
         run: npm run lint || true
       - name: Build (advisory)

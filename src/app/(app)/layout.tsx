@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Plus, PlusCircle, Settings, BarChart3, FlaskConical, BookOpen } from 'lucide-react';
+import { Activity, Calendar, Plus, PlusCircle, Settings, BarChart3, FlaskConical, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserMenu } from '@/components/ui/UserMenu';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -14,7 +14,7 @@ import Image from 'next/image';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
+    const [user, setUser] = useState<{ id?: string; email?: string; name?: string } | null>(null);
     const [currentHash, setCurrentHash] = useState('');
 
     useEffect(() => {
@@ -25,6 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     const data = await res.json();
                     if (data.email) {
                         setUser({
+                            id: data.id,
                             email: data.email,
                             name: data.name || data.email.split('@')[0]
                         });
@@ -42,6 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
                 if (authUser?.email) {
                     setUser({
+                        id: authUser.id,
                         email: authUser.email,
                         name: authUser.email.split('@')[0]
                     });
@@ -77,6 +79,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const navItems = [
         { href: '/dashboard', icon: Calendar, label: 'Dashboard' },
         { href: '/data', icon: BarChart3, label: 'Data' },
+        { href: '/levels', icon: Activity, label: 'Levels', title: 'What is still in you at bedtime' },
         { href: '/habits/templates', icon: BookOpen, label: 'Templates' },
         { href: '/settings', icon: Settings, label: 'Settings' },
         { href: '/habits/new', icon: PlusCircle, label: 'Create tracker' },
@@ -174,7 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Main Content */}
             <main className="max-w-5xl mx-auto px-4 py-5 sm:px-8 sm:py-8 animate-fade-in min-h-screen-safe">
-                <SWRProvider>
+                <SWRProvider ownerId={user?.id}>
                     <ToastProvider>
                         {children}
                     </ToastProvider>

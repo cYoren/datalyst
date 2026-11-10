@@ -5,11 +5,21 @@
  * loses signal) are kept here and replayed when it comes back, instead of
  * being lost. Quick entries are an upsert per variable and date on the
  * server, so replaying one twice is harmless.
+ *
+ * Every queued check-in carries the account that wrote it. A queue is shared by
+ * whatever accounts use this browser, and a replay runs under the session that is
+ * signed in at that moment, so replaying another account's rows would write one
+ * person's values into the other's record.
  */
 
 const KEY = 'datalyst:pending-checkins-v1';
 
-export type QueuedCheckIn = Record<string, unknown> & { logicalDate: string; subvariableId: string };
+export type QueuedCheckIn = Record<string, unknown> & {
+    logicalDate: string;
+    subvariableId: string;
+    /** The account that logged this check-in. Absent only in entries from older builds. */
+    ownerId?: string;
+};
 
 function read(): QueuedCheckIn[] {
     try {
@@ -28,13 +38,23 @@ function write(items: QueuedCheckIn[]) {
     }
 }
 
-export function pendingCount(): number {
-    return typeof window === 'undefined' ? 0 : read().length;
+function ofOwner(items: QueuedCheckIn[], ownerId: string): QueuedCheckIn[] {
+    return items.filter((item) => item.ownerId === ownerId);
 }
 
-/** Later saves of the same variable and day replace earlier ones. */
-export function enqueue(item: QueuedCheckIn) {
-    write([...read().filter((q) => !(q.subvariableId === item.subvariableId && q.logicalDate === item.logicalDate)), item]);
+/** How many check-ins belong to this account. */
+export function pendingCount(ownerId: string | undefined): number {
+    if (typeof window === 'undefined' || !ownerId) return 0;
+    return ofOwner(read(), ownerId).length;
+}
+
+/** Later saves of the same variable and day replace earlier ones, per account. */
+export function enqueue(item: QueuedCheckIn, ownerId: string | undefined) {
+    if (!ownerId) return; // nothing can be attributed, so nothing is queued
+    write([
+        ...read().filter((q) => !(q.subvariableId === item.subvariableId && q.logicalDate === item.logicalDate && q.ownerId === ownerId)),
+        { ...item, ownerId },
+    ]);
 }
 
 /** A thrown fetch (not an HTTP error status) means the request never reached us. */
@@ -44,13 +64,22 @@ export function isNetworkFailure(error: unknown): boolean {
 
 let flushing = false;
 
-/** Replays queued check-ins in order. Returns how many were sent. */
-export async function flush(post: (body: QueuedCheckIn) => Promise<Response>): Promise<number> {
-    if (flushing) return 0;
+/**
+ * Replays this account's queued check-ins in order. Returns how many were sent.
+ *
+ * Rows belonging to another account are dropped rather than sent: their session is
+ * gone, and the only thing a replay could do is file them under the wrong person.
+ */
+export async function flush(post: (body: QueuedCheckIn) => Promise<Response>, ownerId: string | undefined): Promise<number> {
+    if (flushing || !ownerId) return 0;
     flushing = true;
+    // Drop other accounts' leftovers once, before the loop touches anything.
+    const strangers = read().filter((item) => item.ownerId !== ownerId);
+    if (strangers.length) write(read().filter((item) => item.ownerId === ownerId));
+
     let sent = 0;
     try {
-        for (const item of read()) {
+        for (const item of ofOwner(read(), ownerId)) {
             let res: Response;
             try {
                 res = await post(item);

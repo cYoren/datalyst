@@ -1,10 +1,10 @@
 # Datalyst
 
-**Track your whole life in seconds a day, then find out what actually changes it.**
+**Log symptoms and habits and discover what affects your health.**
 
-Log sleep, mood, symptoms, food, workouts, money, family time, anything. After a couple of weeks Datalyst
-shows you which things move together (caffeine and sleep, alcohol and migraines, steps and mood) and lets
-you run real experiments on yourself to check.
+Datalyst is a symptom and habit tracker. Log a migraine, a night of sleep, a coffee, a mood, a walk.
+After a couple of weeks it shows which habits line up with how you feel (coffee and sleep, a walk and
+head pain, steps and mood) and lets you test one change at a time. A pattern is not proof of cause.
 
 - **Any tracker you want.** Numbers, 0 to 10 scales, yes/no, categories. 31 ready-made trackers and 18 packs
   (migraine triggers, gut, pain flares, cycle, sleep, focus, spending, relationships, life balance).

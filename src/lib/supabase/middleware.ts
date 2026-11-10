@@ -2,9 +2,22 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { SELF_HOSTED } from '@/lib/self-hosted'
 
+const PUBLIC_FILE_PATHS = new Set([
+    '/sitemap.xml',
+    '/robots.txt',
+    '/opengraph-image',
+    '/twitter-image',
+]);
+
 export async function updateSession(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+    // Crawlers must read these without a session. Otherwise /sitemap.xml and
+    // /robots.txt 307 to /login, and link previews never load the share image.
+    if (PUBLIC_FILE_PATHS.has(pathname) || pathname.endsWith('/opengraph-image') || pathname.endsWith('/twitter-image')) {
+        return NextResponse.next({ request });
+    }
     // Proof verification is public and works even when auth credentials are unavailable.
-    if (['/verify', '/api/verify'].includes(request.nextUrl.pathname)) return NextResponse.next({ request });
+    if (['/verify', '/api/verify'].includes(pathname)) return NextResponse.next({ request });
     if (SELF_HOSTED) {
         // Single local user: skip login pages and the marketing homepage.
         const password = process.env.DATALYST_PASSWORD

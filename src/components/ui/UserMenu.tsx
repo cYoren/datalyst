@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSWRConfig } from 'swr';
 import { createClient } from '@/lib/supabase/client';
+import { clearPersistedCache } from '@/providers/SWRProvider';
 import { clearWidget } from '@/lib/widget';
 import { LogOut, Settings, ChevronDown, PlusCircle, Microscope, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,9 @@ export function UserMenu({ user, variant = 'desktop' }: UserMenuProps) {
             // Drop cached responses so the next account never sees this one's data,
             // then clear the home screen widget last so no in-flight fetch refills it.
             await mutate(() => true, undefined, { revalidate: false });
+            // The in-memory cache is gone; the persisted blob has to go too, or the
+            // next launch restores it before the new session revalidates.
+            clearPersistedCache();
             await clearWidget();
 
             // Also call our logout API to ensure server-side cleanup

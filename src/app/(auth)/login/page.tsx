@@ -5,6 +5,7 @@ import Image from 'next/image';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { clearPersistedCache } from '@/providers/SWRProvider';
 import { getErrorMessage, getErrorStatus } from '@/lib/error-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -45,6 +46,12 @@ export default function LoginPage() {
 
             // Wait a bit for cookies to be set
             await new Promise(resolve => setTimeout(resolve, 100));
+
+            // A previous session on this device may have left a persisted cache
+            // behind without a sign-out (expired cookie, cleared cookies, killed
+            // app). It belongs to another account, so drop it before the dashboard
+            // renders anything from it.
+            clearPersistedCache();
 
             router.push('/dashboard');
             router.refresh();
@@ -154,7 +161,7 @@ export default function LoginPage() {
                         Welcome back
                     </h1>
                     <p className="text-[var(--text-secondary)]">
-                        Log in to continue your journey
+                        Log in to your symptom and habit tracker
                     </p>
                 </div>
 

@@ -1,5 +1,7 @@
 # N=1 Experimentation Platform — Rigor Upgrade Plan
 
+Status: historical (2026-02-05) — archived 2026-11-08; kept for provenance.
+
 ## Current State
 
 The platform has a working A/B blocked-randomization pipeline with Bayesian and frequentist analysis, blinding support, washout periods, and an audit trail. This is ahead of most self-tracking apps but falls short of the rigor standard set by Gwern's self-experiments or Aella's polling methodology.

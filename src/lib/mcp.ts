@@ -357,6 +357,11 @@ export async function handleMcpMessage(agent: AuthenticatedAgent, msg: JsonRpcMe
     }
 }
 
+// Scopes that may be exercised by a key carried in the URL. A URL is written to
+// request logs and browser history, so a credential in one is treated as leaked:
+// it can read, and cannot change anything or export a study.
+const URL_KEY_ALLOWED_SCOPES: ReadonlySet<string> = new Set(['read']);
+
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
 
@@ -367,6 +372,23 @@ export async function handleMcpPost(request: Request): Promise<Response> {
         return json(rpcError(null, -32001, 'Invalid or missing API key. Send it as "Authorization: Bearer <key>".'), 401, {
             'WWW-Authenticate': 'Bearer realm="datalyst"',
         });
+    }
+
+    // /api/mcp/<key> marks the transport; see app/api/mcp/[key]/route.ts.
+    if (request.headers.get('x-api-key-transport') === 'path') {
+        const excess = agent.scopes.filter((scope) => !URL_KEY_ALLOWED_SCOPES.has(scope));
+        if (excess.length > 0) {
+            return json(
+                rpcError(
+                    null,
+                    -32003,
+                    `This connector takes the key in the URL, which is logged, so it is limited to read access. ` +
+                        `This key also has ${excess.join(', ')}. Revoke it and create a read-only key, or connect with ` +
+                        `the key in the Authorization header.`
+                ),
+                403
+            );
+        }
     }
 
     const rate = checkAgentRateLimit(`mcp:${agent.apiKeyId}`, agent.rateLimitPerMinute);

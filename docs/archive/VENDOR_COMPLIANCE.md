@@ -1,5 +1,7 @@
 # Vendor Compliance Checklist
 
+Status: historical (2026-01-23) — archived 2026-11-08; kept for provenance.
+
 Maintain this list for LGPD/GDPR accountability. Fill in provider names, data locations, and signed DPAs.
 
 ## Processors

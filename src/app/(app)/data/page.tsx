@@ -2,7 +2,8 @@
 
 import { DataDashboard } from '@/components/data/DataDashboard';
 import ActivityCalendar from '@/components/dashboard/ActivityCalendar';
-import { BarChart3 } from 'lucide-react';
+import { Activity, BarChart3 } from 'lucide-react';
+import Link from 'next/link';
 import { useDataPage, useUser } from '@/lib/hooks';
 import { DataPageSkeleton } from '@/components/ui/Skeleton';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -67,6 +68,13 @@ export default function DataPage() {
                 <p className="text-[var(--text-secondary)] mt-2">
                     Visualize your tracker progress in tables and charts.
                 </p>
+                <Link
+                    href="/levels"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] underline-offset-4 hover:text-[var(--text-primary)] hover:underline"
+                >
+                    <Activity className="h-4 w-4" />
+                    Levels: what is still in you at bedtime
+                </Link>
             </header>
 
             <ActivityCalendar

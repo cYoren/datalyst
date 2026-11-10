@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createEntrySchema, quickEntrySchema, updateEntrySchema } from '@/lib/validations';
 import { normalizeEntryNote } from '@/lib/entryUtils';
+import { isSummedVariable } from '@/lib/dailyChart';
 import { z } from 'zod';
 import { startOfDay, endOfDay, parseISO } from 'date-fns';
 import { ServiceError } from '@/lib/error-utils';
@@ -98,7 +99,7 @@ export class EntryService {
         if (variable.type === 'SCALE_0_10' && (body.numericValue < 0 || body.numericValue > 10)) {
             throw new ServiceError('Scale variables require a value from 0 to 10', 400);
         }
-        let metadata: { min?: number; max?: number } = {};
+        let metadata: { min?: number; max?: number; aggregation?: 'sum' } = {};
         try { metadata = JSON.parse(variable.metadata || '{}'); } catch { /* legacy metadata has no bounds */ }
         if (variable.type === 'NUMERIC' || variable.type === 'SCALE_0_10') {
             if (typeof metadata?.min === 'number' && Number.isFinite(metadata.min) && body.numericValue < metadata.min) throw new ServiceError(`Value must be at least ${metadata.min}`, 400);
@@ -151,8 +152,13 @@ export class EntryService {
         }
         // ========== END EXPERIMENT ENFORCEMENT ==========
 
-        // Check if an entry already exists for this habit on this day
-        let habitEntry = await prisma.habitEntry.findFirst({
+        // A dose tracker counts events, so every log is a new entry at this moment.
+        // Reusing today's entry would overwrite the previous cup and flatten the
+        // curve on /levels into one invisible dose.
+        const isDose = isSummedVariable({ metadata });
+
+        // Otherwise one entry per day, updated in place.
+        let habitEntry = isDose ? null : await prisma.habitEntry.findFirst({
             where: {
                 habitId: body.habitId,
                 userId: userId,

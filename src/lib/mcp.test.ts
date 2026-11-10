@@ -105,6 +105,22 @@ describe('MCP transport', () => {
         expect(res.status).toBe(400);
         expect((await res.json()).error.code).toBe(-32600);
     });
+
+    it('limits a key carried in the URL to read access', async () => {
+        const path = { 'x-api-key-transport': 'path' };
+        // A URL ends up in request logs, so a write key arriving that way is refused
+        // before any tool runs.
+        const write = await post({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, 'dl_write', path);
+        expect(write.status).toBe(403);
+        const body = await write.json();
+        expect(body.error.code).toBe(-32003);
+        expect(body.error.message).toContain('read');
+
+        // A read-only key in the URL still works: that is the connector case.
+        expect((await post({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, 'dl_read', path)).status).toBe(200);
+        // The same write key over the header transport keeps its scopes.
+        expect((await post({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, 'dl_write')).status).toBe(200);
+    });
 });
 
 describe('MCP tools', () => {

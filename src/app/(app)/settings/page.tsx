@@ -7,6 +7,7 @@ import { Button, buttonVariants } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { createClient } from '@/lib/supabase/client';
+import { clearPersistedCache } from '@/providers/SWRProvider';
 import { ReminderControl } from '@/components/ui/ReminderControl';
 import { HealthImportControl } from '@/components/ui/HealthImportControl';
 import { clearWidget } from '@/lib/widget';
@@ -144,6 +145,8 @@ export default function SettingsPage() {
 
             const supabase = createClient();
             await supabase.auth.signOut();
+            // The account is gone; so is anything cached for it.
+            clearPersistedCache();
             // Last, so no in-flight dashboard fetch refills the home screen widget.
             await clearWidget();
             window.location.href = '/';

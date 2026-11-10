@@ -133,7 +133,7 @@ export default function RegisterPage() {
                         Create Account
                     </h1>
                     <p className="text-[var(--text-secondary)]">
-                        Start your self-discovery journey
+                        Log symptoms and habits. See what affects your health.
                     </p>
                 </div>
 

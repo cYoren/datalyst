@@ -1,3 +1,10 @@
+import { withCanonical } from '@/lib/brand';
+
+export const metadata = withCanonical('/terms', {
+    title: 'Terms of Service | Datalyst',
+    description: 'Terms for using Datalyst, a symptom and habit tracker.',
+});
+
 export default function TermsPage() {
     return (
         <div className="min-h-screen bg-[var(--color-bg-page)]">
@@ -17,7 +24,7 @@ export default function TermsPage() {
                 <section className="space-y-3 text-[var(--text-secondary)]">
                     <h2 className="text-xl font-semibold text-[var(--text-primary)]">Use of the service</h2>
                     <p>
-                        Datalyst provides tools for habit tracking and personal experimentation. You are responsible for
+                        Datalyst provides tools for symptom and habit tracking, and for personal experiments. You are responsible for
                         the accuracy of the data you submit and for keeping your account credentials secure.
                     </p>
                 </section>

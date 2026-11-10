@@ -1,5 +1,7 @@
 # Datalyst's possible research fit
 
+Status: current
+
 The working hypothesis is a small-study execution service that Claude and other
 agents can operate through explicit researcher permissions. This is a product
 hypothesis, not established market demand or a claim that competitors lack AI.

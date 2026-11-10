@@ -1,4 +1,10 @@
 # Add project specific ProGuard rules here.
+# Capacitor discovers registered plugin methods and WebView bridges by reflection.
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+-keepclassmembers class * {
+    @com.getcapacitor.PluginMethod <methods>;
+    @android.webkit.JavascriptInterface <methods>;
+}
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
 #

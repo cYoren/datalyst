@@ -34,12 +34,12 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-backdrop-in"
                 onClick={onClose}
             />
 
             {/* Content */}
-            <div className="relative w-full max-w-lg border border-[var(--color-border-hover)] bg-[var(--bg-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-elevated)] animate-fade-in overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="relative w-full max-w-lg border border-[var(--color-border-hover)] bg-[var(--bg-card)] rounded-[var(--radius-card)] shadow-[var(--shadow-elevated)] animate-scale-in overflow-hidden max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] font-display">{title}</h2>
                     <button

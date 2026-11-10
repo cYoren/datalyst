@@ -12,6 +12,7 @@ import { FlaskConical, ExternalLink, ShieldCheck, TrendingUp, TrendingDown } fro
 import { calculateRigorScore, getRigorGradeColor, RigorScoreInput } from '@/stats/rigor';
 import { getAttestationExplorerUrl } from '@/lib/crypto/eas';
 import { Metadata } from 'next';
+import { canonicalUrl } from '@/lib/brand';
 import { publicEffectSize } from '@/stats/public-effect';
 import { frozenPublicOutcomes, inclusiveStudyEnd } from '@/services/public-outcomes';
 
@@ -32,11 +33,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         return { title: 'Experiment Not Found' };
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://datalyst.one';
+    const appUrl = canonicalUrl('/');
 
     return {
         title: `${experiment.name} | Datalyst`,
         description: 'View a shared personal experiment.',
+        alternates: { canonical: canonicalUrl(`/share/${slug}`) },
         openGraph: {
             title: experiment.name,
             description: 'Shared N=1 experiment results',

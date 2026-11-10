@@ -118,14 +118,21 @@ export const HABIT_TEMPLATES = [
     },
     {
         id: 'caffeine',
-        name: 'Caffeine Intake',
+        name: 'Caffeine',
         icon: 'coffee',
         color: '#92400e',
-        description: 'Track coffee, tea, and caffeine consumption',
+        description: 'One tap per coffee, tea or energy drink, so timing shows up too',
         subvariables: [
-            { name: 'Cups', type: SubvariableType.NUMERIC, unit: 'cups', order: 0, metadata: { step: 1 } },
-            { name: 'Last cup time', type: SubvariableType.NUMERIC, unit: 'h (24h)', order: 1, metadata: { step: 1 } },
-            { name: 'Jitters', type: SubvariableType.SCALE_0_10, order: 2, metadata: { labels: ['None', 'Wired'] } }
+            // A dose tracker: each entry is one drink at the moment you logged it, and
+            // the day is their total. Levels reads the same entries as a decay curve.
+            {
+                name: 'Caffeine',
+                type: SubvariableType.NUMERIC,
+                unit: 'mg',
+                order: 0,
+                metadata: { step: 5, min: 0, max: 1200, aggregation: 'sum' }
+            },
+            { name: 'Jitters', type: SubvariableType.SCALE_0_10, order: 1, metadata: { labels: ['None', 'Wired'] } }
         ]
     },
     {

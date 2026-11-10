@@ -1,0 +1,1 @@
+sintoma,habito,enxaqueca,sono,humor,dor,saude,diario

@@ -27,7 +27,9 @@ export async function middleware(request: NextRequest) {
   // Agent endpoints authenticate with API keys, not the session cookie, so the
   // login redirect must not apply to them.
   const isAgentApi = pathname.startsWith('/api/v1/') || pathname === '/api/mcp' || pathname.startsWith('/api/mcp/');
-  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAgentApi) {
+  // The retention route checks its own secret; the cron has no session and would be sent to /login.
+  const isCron = pathname === '/api/admin/retention';
+  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAgentApi || isCron) {
     return NextResponse.next();
   }
 

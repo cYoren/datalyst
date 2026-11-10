@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next';
+import { canonicalUrl } from '@/lib/brand';
 
 export default function robots(): MetadataRoute.Robots {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://datalyst.one';
-
     return {
         rules: {
             userAgent: '*',
@@ -15,9 +14,10 @@ export default function robots(): MetadataRoute.Robots {
                 '/logs',
                 '/settings',
                 '/onboarding',
+                '/about',
                 '/api/',
             ],
         },
-        sitemap: `${baseUrl}/sitemap.xml`,
+        sitemap: canonicalUrl('/sitemap.xml'),
     };
 }

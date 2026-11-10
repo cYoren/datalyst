@@ -15,7 +15,8 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#1b2732",
-  "background_color": "#f2f5f8",
+  "theme_color": "#121316",
+  "background_color": "#121316",
+  "description": "Log symptoms and habits and discover what affects your health.",
   "display": "standalone"
 }
