@@ -8,11 +8,10 @@ import { Modal } from '@/components/ui/Modal';
 import { EntryEditForm, type EntryEditFormProps } from '@/components/forms/EntryEditForm';
 import { format } from 'date-fns';
 import { buildDailyRows, isSummedVariable } from '@/lib/dailyChart';
+import { DotAreaChart } from '@/components/charts/DotAreaChart';
 import { cn } from '@/lib/utils';
 import { chart } from '@/lib/chartTheme';
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -20,7 +19,6 @@ import {
     ResponsiveContainer,
     BarChart,
     Bar,
-    Legend
 } from 'recharts';
 import { Download, Edit2, BarChart3, PlusCircle, ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import Link from 'next/link';
@@ -222,30 +220,37 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
         });
     }, [usesDailyTotals, visibleEntries, selectedHabit]);
 
-    const movingAverageData = useMemo(() => {
-        const windowSize = 5;
-        return chartData.map((point, index: number) => {
-            const nextPoint = { ...point };
+    // The house chart takes plain points: one per day, plus a handful of dates for
+    // the axis so the labels never collide. Built per subvariable, because a habit
+    // can hold several numbers and each card shows its own.
+    const trendFor = useMemo(() => {
+        const trends = new Map<string, { points: Array<{ x: number; y: number }>; labels: Array<{ x: number; text: string }>; mean: number | null }>();
 
-            selectedHabit?.subvariables.forEach((sub: DashboardSubvariable) => {
-                if (sub.type !== 'NUMERIC' && sub.type !== 'SCALE_0_10') return;
+        for (const sub of selectedHabit?.subvariables ?? []) {
+            if (sub.type !== 'NUMERIC' && sub.type !== 'SCALE_0_10') continue;
 
-                let total = 0;
-                let count = 0;
+            const points = chartData
+                .map((row, index) => ({
+                    x: index,
+                    y: typeof row[sub.name] === 'number' ? Number(row[sub.name]) : null,
+                }))
+                .filter((point): point is { x: number; y: number } => point.y !== null);
 
-                for (let i = Math.max(0, index - windowSize + 1); i <= index; i++) {
-                    const value = chartData[i]?.[sub.name];
-                    if (typeof value === 'number') {
-                        total += value;
-                        count += 1;
-                    }
-                }
+            const step = Math.max(1, Math.ceil(chartData.length / 5));
+            const labels = chartData
+                .map((row, index) => ({ index, text: String(row.date ?? '') }))
+                .filter(({ index }) => index % step === 0 || index === chartData.length - 1)
+                // A forced last label can land on the step label before it.
+                .filter(({ index }, position, all) => (
+                    position === all.length - 1 || all[position + 1].index - index > step * 0.6
+                ))
+                .map(({ index, text }) => ({ x: index, text }));
 
-                nextPoint[`${sub.name}_ma`] = count > 0 ? Number((total / count).toFixed(2)) : null;
-            });
+            const mean = points.length > 0 ? points.reduce((total, point) => total + point.y, 0) / points.length : null;
+            trends.set(sub.id, { points, labels, mean });
+        }
 
-            return nextPoint;
-        });
+        return trends;
     }, [chartData, selectedHabit]);
 
     const getCategoryChartData = (sub: DashboardSubvariable) => {
@@ -418,52 +423,28 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
                         </h3>
 
                         <div className="h-[300px] w-full">
-                            {(sub.type === 'NUMERIC' || sub.type === 'SCALE_0_10') && (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={movingAverageData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} vertical={false} />
-                                        <XAxis
-                                            dataKey="date"
-                                            stroke={chart.axis}
-                                            tick={chart.tick}
-                                            tickLine={false}
-                                            axisLine={false}
-                                            minTickGap={20}
-                                        />
-                                        <YAxis
-                                            stroke={chart.axis}
-                                            tick={chart.tick}
-                                            tickLine={false}
-                                            axisLine={false}
-                                            domain={sub.type === 'SCALE_0_10' ? [0, 10] : ['auto', 'auto']}
-                                            width={36}
-                                        />
-                                        <Tooltip
-                                            contentStyle={chart.tooltip}
-                                        />
-                                        <Legend wrapperStyle={{ fontSize: 12, color: chart.axis }} />
-                                        <Line
-                                            type="monotone"
-                                            dataKey={sub.name}
-                                            name="Daily value"
-                                            stroke={chart.teal}
-                                            strokeWidth={2}
-                                            dot={{ fill: chart.surface, strokeWidth: 2, r: 3, stroke: chart.teal }}
-                                            activeDot={{ r: 6, strokeWidth: 0, fill: chart.teal }}
-                                        />
-                                        <Line
-                                            type="monotone"
-                                            dataKey={`${sub.name}_ma`}
-                                            name="5-day trend"
-                                            stroke={chart.violet}
-                                            strokeWidth={2}
-                                            strokeDasharray="6 4"
-                                            dot={false}
-                                            connectNulls
-                                        />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            )}
+                            {(sub.type === 'NUMERIC' || sub.type === 'SCALE_0_10') && (() => {
+                                const trend = trendFor.get(sub.id);
+                                if (!trend || trend.points.length === 0) {
+                                    return (
+                                        <p className="flex h-full items-center justify-center text-sm text-[var(--text-tertiary)]">
+                                            No values logged yet.
+                                        </p>
+                                    );
+                                }
+                                return (
+                                    <DotAreaChart
+                                        series={[{ id: sub.name, color: chart.tealRgb, points: trend.points }]}
+                                        min={0}
+                                        max={Math.max(1, trend.points.length - 1)}
+                                        yMax={sub.type === 'SCALE_0_10' ? 10 : undefined}
+                                        height={300}
+                                        axisLabels={trend.labels}
+                                        rules={trend.mean === null ? [] : [{ y: trend.mean, label: `avg ${trend.mean.toFixed(1)}` }]}
+                                        ariaLabel={`${sub.name} over ${trend.points.length} entries, average ${trend.mean === null ? 'unknown' : trend.mean.toFixed(1)}`}
+                                    />
+                                );
+                            })()}
 
                             {sub.type === 'BOOLEAN' && (
                                 <ResponsiveContainer width="100%" height="100%">

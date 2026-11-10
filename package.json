@@ -33,6 +33,7 @@
     "@prisma/adapter-pg": "^6.19.0",
     "@prisma/client": "^6.19.0",
     "@radix-ui/react-slot": "^1.2.4",
+    "@sentry/nextjs": "^11.10.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.39.3",
     "class-variance-authority": "^0.7.1",

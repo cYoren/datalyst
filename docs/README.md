@@ -11,6 +11,7 @@ Root docs: `../ROADMAP.md`, `../tasks/open-source-plan.md`.
 | Doc | What it is |
 | --- | --- |
 | `ATTESTATION_RUNBOOK.md` | Operator order of operations for EAS attestations: schema registration, migration, environment, offchain vs onchain, signer lifetime, recovery. |
+| `CHARTS.md` | Current doc. The house chart: the dot matrix, why it is canvas, and how to use it. |
 | `CLOUDFLARE_WORKERS.md` | Current doc. |
 | `HEALTH_IMPORT_SECURITY.md` | Current doc. |
 | `LEVELS.md` | Current doc. How `/levels` models decay. |

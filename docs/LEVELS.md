@@ -61,10 +61,10 @@ the habit PATCH path does not safely support for a partial update.
 
 ## The chart
 
-`src/components/levels/LevelCurve.tsx`, drawn on a canvas with SVG chrome on top,
-following the dot-matrix planners: a baseline, five bare hour labels, one dotted
-floor line, and two callouts with hairlines (peak, bedtime) plus a
-`LAST CUP BY` line under the axis.
+`src/components/levels/LevelCurve.tsx` is a thin adapter over the house chart
+(`src/components/charts/DotAreaChart.tsx`, see `CHARTS.md`): one series per dose,
+logged in bone and planned in the accent, the floor as a rule, peak and bedtime as
+callouts, and a `LAST CUP BY` line under the axis.
 
 - Every 8 px cell is a dot. The field reaches the summed curve; each dot's alpha
   is a fast ramp of its own column height (bright on the curve, dim on the axis,

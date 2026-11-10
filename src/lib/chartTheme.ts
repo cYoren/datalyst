@@ -4,6 +4,8 @@ export const chart = {
     grid: 'rgba(242, 241, 238, 0.08)',
     axis: '#8e8d8b',
     teal: '#5ed3b5',
+    /** Same colour as an `r, g, b` triple, for the canvas dot charts. */
+    tealRgb: '94, 211, 181',
     violet: '#9d9fff',
     amber: '#f5b54a',
     coral: '#ff8a6b',
