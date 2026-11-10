@@ -59,6 +59,23 @@ Tracker, half-life preset, bedtime and floor live in `localStorage`
 settings; persisting them per user would need a subvariable metadata write, which
 the habit PATCH path does not safely support for a partial update.
 
+## The chart
+
+`src/components/levels/LevelCurve.tsx`, drawn on a canvas with SVG chrome on top,
+following the dot-matrix planners: a baseline, five bare hour labels, one dotted
+floor line, and two callouts with hairlines (peak, bedtime) plus a
+`LAST CUP BY` line under the axis.
+
+- Every 8 px cell is a dot. The field reaches the summed curve; each dot's alpha
+  is a fast ramp of its own column height (bright on the curve, dim on the axis,
+  with a floor so it never dissolves before the baseline).
+- A row of slightly brighter dots marks where each earlier dose's own curve ends,
+  so several cups stay readable as several cups.
+- The band above what is already logged is the accent colour: a planned dose reads
+  as a cap on top of the day you have had.
+- It is a canvas because the fade is per dot. A pattern fill or an area gradient
+  cannot vary with each cell's height inside its own column. Text stays in SVG.
+
 ## Numbers on screen
 
 - Peak: highest total in the window and when.

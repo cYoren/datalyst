@@ -2,33 +2,19 @@
 
 import React, { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import {
-    Area,
-    AreaChart,
-    CartesianGrid,
-    Line,
-    ReferenceDot,
-    ReferenceLine,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
 import { X } from 'lucide-react';
 import { mutate } from 'swr';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { chart } from '@/lib/chartTheme';
+import { LevelCurve } from '@/components/levels/LevelCurve';
 import { cn } from '@/lib/utils';
 import {
     HALF_LIFE_PRESETS,
-    buildSeries,
     clockLabel,
     clearTime,
     latestDoseTime,
     levelAt,
     minutesOfDay,
-    peak,
     presetForTracker,
     windowFor,
     type Dose,
@@ -36,10 +22,6 @@ import {
 
 /** The day opens at 04:00 so one late night stays one day. */
 const DAY_OPEN_MINUTES = 4 * 60;
-
-/** Dot matrix texture: 2 px squares on a 7 px grid. */
-const DOT_PITCH = 7;
-const DOT_SIZE = 2;
 
 /** Numeric tracker that can hold a dose amount, e.g. mg of caffeine. */
 export interface LevelTracker {
@@ -109,16 +91,6 @@ function readStoredSettings(): StoredSettings {
     } catch {
         return {};
     }
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-    return (
-        <div className="flex flex-col gap-1">
-            <span className="label-mono">{label}</span>
-            <span className="text-lg font-semibold tabular-nums text-[var(--text-primary)]">{value}</span>
-            {hint && <span className="text-xs tabular-nums text-[var(--text-tertiary)]">{hint}</span>}
-        </div>
-    );
 }
 
 export function LevelsPanel({ trackers, entries }: LevelsPanelProps) {
@@ -226,33 +198,17 @@ export function LevelsPanel({ trackers, entries }: LevelsPanelProps) {
 
     const doses = useMemo(() => [...loggedDoses, ...plannedDoses], [loggedDoses, plannedDoses]);
 
-    const series = useMemo(
-        () =>
-            buildSeries({
-                doses,
-                halfLifeHours,
-                start: dayWindow.start,
-                end: dayWindow.end,
-                stepMinutes: 5,
-            }),
-        [doses, halfLifeHours, dayWindow.end, dayWindow.start]
-    );
-
-    const firstDoseAt = doses.length > 0 ? Math.min(...doses.map((dose) => dose.at)) : null;
-
-    const chartData = useMemo(
-        () =>
-            series.map((point) => ({
-                offset: (point.t - dayWindow.start) / 60_000,
-                // The line only exists once something has been taken.
-                logged: firstDoseAt !== null && point.t >= firstDoseAt && point.t <= now ? point.total : null,
-                projected: point.t >= now && point.total > 0 ? point.total : null,
-                ...point.doses,
-            })),
-        [firstDoseAt, now, series, dayWindow.start]
-    );
-
-    const peakPoint = useMemo(() => peak(series), [series]);
+    // The readouts are exact: every dose peaks the moment it lands, so the peak is
+    // the highest dose time, and the curve never rises between doses.
+    const peakPoint = useMemo(() => {
+        if (doses.length === 0) return null;
+        let best: { t: number; value: number } | null = null;
+        for (const dose of doses) {
+            const value = levelAt(doses, dose.at, halfLifeHours);
+            if (!best || value > best.value) best = { t: dose.at, value };
+        }
+        return best;
+    }, [doses, halfLifeHours]);
     const bedtimeLevel = useMemo(
         () => levelAt(doses, bedtime, halfLifeHours),
         [bedtime, doses, halfLifeHours]
@@ -266,7 +222,6 @@ export function LevelsPanel({ trackers, entries }: LevelsPanelProps) {
         [bedtime, floor, halfLifeHours, planAmount]
     );
 
-    const showNow = now >= dayWindow.start && now <= dayWindow.end;
     const nowClock = clockLabel(minutesOfDay(new Date(now)));
     const lastDoseToday = lastDose >= dayWindow.start && lastDose <= dayWindow.end;
 
@@ -418,184 +373,29 @@ export function LevelsPanel({ trackers, entries }: LevelsPanelProps) {
                 </div>
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[var(--color-border)] pt-5 sm:grid-cols-4">
-                <Stat
-                    label="Peak"
-                    value={peakPoint ? `${Math.round(peakPoint.value)} ${unit}` : '—'}
-                    hint={peakPoint ? clockLabel(((peakPoint.t - dayWindow.start) / 60_000 + DAY_OPEN_MINUTES)) : undefined}
+            <div className="mt-6 border-t border-[var(--color-border)] pt-5">
+                <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--text-tertiary)]">
+                    {[
+                        `${doses.length} dose${doses.length === 1 ? '' : 's'}`,
+                        `${Math.round(doses.reduce((total, dose) => total + dose.amount, 0))} ${unit}`,
+                        `half-life ${halfLifeHours} h`,
+                    ].join('  \u00b7  ')}
+                </p>
+
+                <LevelCurve
+                    doses={doses}
+                    halfLifeHours={halfLifeHours}
+                    floor={floor}
+                    unit={unit}
+                    bedtimeMinutes={bedtimeMinutes}
+                    start={dayWindow.start}
+                    now={now}
+                    height={wide ? 340 : 300}
+                    lastDoseBy={lastDoseToday ? lastDose : null}
+                    clearsBy={clears}
+                    peak={peakPoint}
+                    bedtimeLevel={bedtimeLevel}
                 />
-                <Stat
-                    label="At bed"
-                    value={`${Math.round(bedtimeLevel)} ${unit}`}
-                    hint={`${bedtimeLevel > floor ? 'over' : 'under'} the ${floor} ${unit} floor`}
-                />
-                <Stat
-                    label="Clears by"
-                    value={clears ? clockLabel((clears - dayWindow.start) / 60_000 + DAY_OPEN_MINUTES) : '—'}
-                    hint={clears ? `under ${floor} ${unit}` : `still over it at ${clockLabel(DAY_OPEN_MINUTES)}`}
-                />
-                <Stat
-                    label="Last dose by"
-                    value={lastDoseToday ? clockLabel((lastDose - dayWindow.start) / 60_000 + DAY_OPEN_MINUTES) : '—'}
-                    hint={`${planAmount} ${unit} dose, ${halfLifeHours} h half-life`}
-                />
-            </dl>
-
-            <div className="mt-6 h-[300px] w-full sm:h-[360px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -14 }}>
-                        <defs>
-                            {/* The house texture: a dot matrix, offset per dose so overlapping
-                                curtains read as separate fields instead of one flat fill. */}
-                            {doses.map((dose, index) => (
-                                <pattern
-                                    key={dose.id}
-                                    id={`dots-${index}`}
-                                    width={DOT_PITCH}
-                                    height={DOT_PITCH}
-                                    patternUnits="userSpaceOnUse"
-                                >
-                                    <rect
-                                        width={DOT_SIZE}
-                                        height={DOT_SIZE}
-                                        fill={dose.planned ? chart.violet : chart.teal}
-                                        opacity={dose.planned ? 0.42 : 0.55}
-                                    />
-                                </pattern>
-                            ))}
-                        </defs>
-
-                        <CartesianGrid strokeDasharray="1 5" stroke={chart.grid} vertical={false} />
-                        <XAxis
-                            dataKey="offset"
-                            type="number"
-                            domain={[0, 1440]}
-                            ticks={wide ? [0, 180, 360, 540, 720, 900, 1080, 1260] : [0, 240, 480, 720, 960, 1200]}
-                            tickFormatter={(value: number) => clockLabel(value + DAY_OPEN_MINUTES)}
-                            stroke={chart.axis}
-                            tick={chart.tick}
-                            tickLine={false}
-                            axisLine={false}
-                        />
-                        <YAxis
-                            stroke={chart.axis}
-                            tick={chart.tick}
-                            tickLine={false}
-                            axisLine={false}
-                            width={44}
-                        />
-                        <Tooltip
-                            cursor={chart.tooltipCursor}
-                            contentStyle={chart.tooltip}
-                            labelFormatter={(value) => clockLabel(Number(value) + DAY_OPEN_MINUTES)}
-                            formatter={(value, name) => {
-                                const dose = doses.find((item) => item.id === name);
-                                const label = name === 'logged' || name === 'projected'
-                                    ? 'level'
-                                    : dose?.planned
-                                        ? 'planned'
-                                        : 'dose';
-                                return [`${Math.round(Number(value))} ${unit}`, label];
-                            }}
-                        />
-
-                        {doses.map((dose, index) => (
-                            <Area
-                                key={dose.id}
-                                type="monotone"
-                                dataKey={dose.id}
-                                stroke="none"
-                                fill={`url(#dots-${index})`}
-                                isAnimationActive={false}
-                            />
-                        ))}
-
-                        {/* Where each dose landed, as a tick on the baseline. */}
-                        {doses.map((dose) => (
-                            <ReferenceDot
-                                key={`tick-${dose.id}`}
-                                x={(dose.at - dayWindow.start) / 60_000}
-                                y={0}
-                                shape={(props: { cx?: number; cy?: number }) => (
-                                    <rect
-                                        x={(props.cx ?? 0) - 1.5}
-                                        y={(props.cy ?? 0) - 1.5}
-                                        width={3}
-                                        height={3}
-                                        fill={dose.planned ? chart.violet : chart.axis}
-                                    />
-                                )}
-                            />
-                        ))}
-
-                        {/* Peak, with a hairline down to the baseline and the number above it. */}
-                        {peakPoint && (
-                            <>
-                                <ReferenceLine
-                                    segment={[
-                                        { x: (peakPoint.t - dayWindow.start) / 60_000, y: 0 },
-                                        { x: (peakPoint.t - dayWindow.start) / 60_000, y: peakPoint.value },
-                                    ]}
-                                    stroke={chart.teal}
-                                    strokeOpacity={0.45}
-                                    strokeDasharray="2 4"
-                                />
-                                <ReferenceDot
-                                    x={(peakPoint.t - dayWindow.start) / 60_000}
-                                    y={peakPoint.value}
-                                    r={3.5}
-                                    fill={chart.surface}
-                                    stroke={chart.teal}
-                                    strokeWidth={2}
-                                />
-                            </>
-                        )}
-
-                        <ReferenceLine
-                            y={floor}
-                            stroke={chart.axis}
-                            strokeDasharray="4 4"
-                            label={{ value: `${floor} ${unit}`.toUpperCase(), position: 'insideTopRight', fill: chart.axis, fontSize: 10, fontFamily: 'ui-monospace, monospace', letterSpacing: 1 }}
-                        />
-                        {showNow && (
-                            <ReferenceLine x={offsetOf(minutesOfDay(new Date(now)))} stroke={chart.amber} strokeOpacity={0.4} />
-                        )}
-                        <ReferenceLine
-                            x={offsetOf(bedtimeMinutes)}
-                            stroke={chart.axis}
-                            strokeDasharray="2 4"
-                            label={{
-                                value: `BED ${clockLabel(bedtimeMinutes)}`,
-                                position: 'insideTopRight',
-                                fill: chart.axis,
-                                fontSize: 10,
-                                fontFamily: 'ui-monospace, monospace',
-                                letterSpacing: 1,
-                                offset: 10,
-                            }}
-                        />
-
-                        <Line
-                            type="monotone"
-                            dataKey="logged"
-                            stroke={chart.teal}
-                            strokeWidth={2}
-                            dot={false}
-                            connectNulls={false}
-                            isAnimationActive={false}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="projected"
-                            stroke={chart.violet}
-                            strokeWidth={2}
-                            strokeDasharray="5 4"
-                            dot={false}
-                            connectNulls={false}
-                            isAnimationActive={false}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
             </div>
 
             <div className="mt-5 border-t border-[var(--color-border)] pt-5">
