@@ -98,7 +98,7 @@ const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date forma
         return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
     }, 'Invalid calendar date');
 
-export const experimentFormSchema = z.object({
+const experimentBaseSchema = z.object({
     name: z.string().min(1, 'Name is required').max(200, 'Name too long'),
     hypothesis: z.string().max(1000).optional().nullable(),
     independentId: z.string().cuid('Invalid variable ID'),
@@ -118,7 +118,9 @@ export const experimentFormSchema = z.object({
         dose: z.number().optional(),
         description: z.string().max(200).optional(),
     })).min(2).max(8).default([{ label: 'A' }, { label: 'B' }]),
-}).refine(
+});
+
+export const experimentFormSchema = experimentBaseSchema.refine(
     (data) => {
         if (data.type === 'OBSERVATIONAL') return true;
         return data.blockSize % data.conditions.length === 0;
@@ -144,4 +146,6 @@ export const experimentFormSchema = z.object({
     { message: 'Experiment must be at least 7 days long', path: ['endDate'] }
 );
 
-export const updateExperimentSchema = experimentFormSchema.partial().omit({ independentId: true, dependentId: true });
+// Built from the unrefined object: zod 4.6 refuses .partial() on a schema carrying
+// refinements, and a partial update cannot evaluate the cross-field rules anyway.
+export const updateExperimentSchema = experimentBaseSchema.partial().omit({ independentId: true, dependentId: true });

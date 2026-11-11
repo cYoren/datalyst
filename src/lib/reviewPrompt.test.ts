@@ -1,4 +1,4 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 import {
     clearReviewPromptState,
@@ -10,7 +10,7 @@ import {
 } from './reviewPrompt';
 
 describe('review prompt gate', () => {
-    let requestReview: ReturnType<typeof vi.fn>;
+    let requestReview: Mock<() => Promise<void>>;
 
     beforeEach(() => {
         window.localStorage.clear();
