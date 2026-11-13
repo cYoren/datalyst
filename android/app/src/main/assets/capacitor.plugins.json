@@ -1,0 +1,26 @@
+[
+	{
+		"pkg": "@capacitor-community/apple-sign-in",
+		"classpath": "com.getcapacitor.community.applesignin.SignInWithApple"
+	},
+	{
+		"pkg": "@capacitor-community/in-app-review",
+		"classpath": "com.getcapacitor.community.inappreview.InAppReviewPlugin"
+	},
+	{
+		"pkg": "@capacitor/app",
+		"classpath": "com.capacitorjs.plugins.app.AppPlugin"
+	},
+	{
+		"pkg": "@capacitor/browser",
+		"classpath": "com.capacitorjs.plugins.browser.BrowserPlugin"
+	},
+	{
+		"pkg": "@capacitor/local-notifications",
+		"classpath": "com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin"
+	},
+	{
+		"pkg": "@capgo/capacitor-health",
+		"classpath": "app.capgo.plugin.health.HealthPlugin"
+	}
+]

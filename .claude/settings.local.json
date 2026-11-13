@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(npx next build:*)",
+      "Bash(find:*)",
+      "Bash(dir \"C:\\\\dev\\\\Datalyst\\\\src\\\\app\\\\\\(app\\)\\\\habits\\\\[id]\")",
+      "Bash(dir /s /b \"C:\\\\dev\\\\Datalyst\\\\src\\\\components\\\\*.tsx\")",
+      "Bash(dir C:devDatalyst*.config.* /b)",
+      "Bash(npx prisma validate:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx next lint)",
+      "Bash(dir:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
