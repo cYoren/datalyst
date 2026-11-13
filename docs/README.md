@@ -6,7 +6,8 @@ Read this before any file in `docs/`. It says what is current and what is histor
 
 ## Current
 
-Root docs: `../ROADMAP.md`, `../tasks/open-source-plan.md`.
+Root docs: `../ROADMAP.md`, `../tasks/open-source-plan.md` (private tree only — `tasks/` is
+export-ignored, so that link is dead in the public snapshot).
 
 | Doc | What it is |
 | --- | --- |
@@ -25,6 +26,11 @@ Root docs: `../ROADMAP.md`, `../tasks/open-source-plan.md`.
 | `research-agent-workflow.md` | Current doc. |
 | `researcher-studies.md` | Current doc. |
 | `studies-roadmap.md` | The three gaps between shipped studies and easy hosting, with acceptance criteria. |
+| `AI-PLATFORM-STATE.md` | Current doc. What the AI platform ships, behind which flag, what the model still gets wrong, and what is deferred with the reason. |
+| `native-surfaces.md` | Current doc. The Capacitor shells and home screen widgets: the decision log, the widget inventory, and the next-build checklist. |
+| `xcode-cloud.md` | Current doc. The Xcode Cloud setup and what it has been verified against. |
+| `STORE-LINKS.md` | Current doc. Where each store listing lives. |
+| `OPEN-DECISIONS.md` | Current doc. What is waiting on a human rather than on code, and who decides. |
 
 ## Historical
 
