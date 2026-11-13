@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TrackerIcon } from '@/components/ui/TrackerIcon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -53,7 +53,9 @@ export const EntryEditForm = ({ entry, onSuccess, onCancel, onDelete }: EntryEdi
     );
 
     // Initialize values from existing entry
-    useEffect(() => {
+    const [syncedEntry, setSyncedEntry] = useState<typeof entry>();
+    if (syncedEntry !== entry) {
+        setSyncedEntry(entry);
         const initial: Record<string, number> = {};
 
         // First set defaults for all subvariables
@@ -69,7 +71,7 @@ export const EntryEditForm = ({ entry, onSuccess, onCancel, onDelete }: EntryEdi
         });
 
         setValues(initial);
-    }, [entry]);
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

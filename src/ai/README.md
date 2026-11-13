@@ -49,6 +49,12 @@ The `src/ai` module establishes the server-only, provider-neutral boundary for a
 ```text
 src/ai/
 ├── index.ts                     # Guarded server-only barrel exports ('server-only')
+├── config.ts                    # Model/provider from server-side env only
+├── flags.ts                     # One switch per capability; AI_ENABLED is the master
+├── redaction.ts                 # What a log line may contain: identifiers, never prose
+├── run-log.ts                   # The one AI log path, guarded before it writes
+├── rate-limit.ts                # Per-user ceiling on provider calls (AI_RUNS_PER_MINUTE)
+├── insights.ts                  # Capability C: evidence selection and deterministic rendering
 ├── providers/
 │   ├── types.ts                 # Provider interface and request/response contracts
 │   ├── allowlist.ts             # Approved model registry and pricing calculations
@@ -56,18 +62,36 @@ src/ai/
 │   ├── fake-provider.ts         # Offline synthetic test provider
 │   └── index.ts
 ├── schemas/
-│   └── index.ts                 # Zod validation schemas for requests and responses
+│   ├── index.ts                 # Zod validation schemas for requests and responses
+│   └── artifacts.ts             # ROADMAP §7: evidence packet, artifacts, run metadata
 ├── policy/
 │   ├── cost-tracker.ts          # In-memory per-user daily cost tracker
 │   ├── retry.ts                 # Transient retry policy with exponential backoff
 │   ├── runner.ts                # Execution wrapper orchestrating policy rules
 │   └── index.ts
 └── __tests__/                   # Focused unit and integration tests
+    ├── fixtures.ts              # Synthetic evaluation cases; never real user data
     ├── allowlist.test.ts        # Synthetic allowlist and pricing tests
+    ├── artifacts.test.ts        # §7 contracts; invalid model output is rejected
     ├── fake-provider.test.ts    # Synthetic fake provider tests
+    ├── flags.test.ts            # Every capability switches independently
     ├── error-normalization.test.ts # Error classification & sanitization tests
     ├── cost-tracker.test.ts     # In-memory budget tracker tests
+    ├── rate-limit.test.ts       # Per-user, per-capability ceiling
+    ├── redaction.test.ts        # No prompt text reaches run metadata, on success or failure
+    ├── run-log.test.ts          # The guard is actually called, and drops what fails
     ├── retry.test.ts            # Transient retry & backoff tests
     ├── runner.test.ts           # Policy runner integration & async tracker tests
     └── server-only.test.ts      # Server-only boundary regression tests
 ```
+
+## Turning a capability off
+
+`AI_ENABLED=off` beats everything. Otherwise `AI_FEATURE_<CAPABILITY>` (`INSIGHTS`,
+`QUICK_LOG`, `PROTOCOL_BUILDER`, `EXPERIMENT_PLANNER`, `NEXT_OBSERVATION`) controls one
+capability. Natural-language entry is `QUICK_LOG`; there is no second switch for it. Shipped capabilities default on, unshipped ones default off, and an
+unreadable value counts as off. With all of them off the app is the deterministic product:
+check-in, statistics, correlations, Lab and export keep working, and the two AI surfaces fall
+back to their own copy.
+
+Current state, per-capability numbers and what is deferred: [`docs/AI-PLATFORM-STATE.md`](../../docs/AI-PLATFORM-STATE.md).

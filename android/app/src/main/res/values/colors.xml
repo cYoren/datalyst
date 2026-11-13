@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same palette as src/app/globals.css. Colour only carries state: accent while
+         there is something left, success once the day is logged. -->
+    <color name="widget_surface">#1A1B20</color>
+    <color name="widget_stroke">#26F2F1EE</color>
+    <color name="widget_ink">#F2F1EE</color>
+    <color name="widget_mute">#AAA9A6</color>
+    <color name="widget_accent">#9D9FFF</color>
+    <color name="widget_done">#5ED3B5</color>
+    <color name="widget_on_accent">#121316</color>
+    <color name="widget_track">#24F2F1EE</color>
+</resources>

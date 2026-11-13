@@ -3,7 +3,10 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { StatsService } from './stats.service';
 import { aiConfiguration } from '@/ai/config';
+import { aiCapabilityEnabled } from '@/ai/flags';
 import { AiExecutionPolicy } from '@/ai/policy/runner';
+import { AI_RUNS_PER_MINUTE, checkAiRateLimit } from '@/ai/rate-limit';
+import { logAiRun } from '@/ai/run-log';
 import { buildEvidence, createInsightRequest, evidenceHash, explainEvidence } from '@/ai/insights';
 
 export class InsightAvailabilityError extends Error {
@@ -15,6 +18,14 @@ export { aiConfiguration };
 export async function generateAiInsights(userId: string) {
   const profile = await prisma.user.findUnique({ where: { id: userId }, select: { aiConsent: true, aiConsentAt: true } });
   if (!profile?.aiConsent || !profile.aiConsentAt) throw new InsightAvailabilityError('consent_required', 403);
+  // Switched off means switched off: the deterministic insights stay, no packet leaves.
+  if (!aiCapabilityEnabled('insights')) throw new InsightAvailabilityError('disabled', 503);
+  // Coarse pre-check before the correlation query and the 5000-row history read: the precise
+  // charge below sits after them, because a cache hit must cost nothing, and a hot loop must
+  // not be able to hammer the database on the way there.
+  if (!checkAiRateLimit(userId, 'insights:request', AI_RUNS_PER_MINUTE * 2).allowed) {
+    throw new InsightAvailabilityError('rate_limited', 429);
+  }
   const config = aiConfiguration();
   if (!config) throw new InsightAvailabilityError('unavailable');
   const correlations = await StatsService.calculateGlobalCorrelations(userId);
@@ -53,9 +64,13 @@ export async function generateAiInsights(userId: string) {
 
   const request = createInsightRequest(facts, config.modelId);
   await reserveAiBudget(userId, config, request);
+  // Charged where the money is spent, after the reservation so a user already over budget
+  // does not also burn minute quota. A cached answer returns above and is never charged.
+  if (!checkAiRateLimit(userId, 'insights').allowed) throw new InsightAvailabilityError('rate_limited', 429);
   const policy = new AiExecutionPolicy({
     provider: config.createProvider(), allowlist: { [config.modelId]: config.spec },
     defaultTimeoutMs: 20000, retryOptions: { maxRetries: 0 },
+    onRunComplete: logAiRun,
   });
   // Hold the consent row lock from the final consent check through dispatch and publication:
   // a revocation (an UPDATE on the same row) waits for an in-flight request, and a request
@@ -84,8 +99,14 @@ export async function reserveAiBudget(userId: string, config: NonNullable<Return
   // retain the reservation because the vendor may already have billed them.
   const reservation = (Buffer.byteLength(JSON.stringify(request), 'utf8') + 1024) * config.spec.costPerInputTokenUsd +
     maxTokens * config.spec.costPerOutputTokenUsd;
-  const configuredLimit = Number(process.env.AI_DAILY_LIMIT_USD ?? '0.10');
-  const limit = Number.isFinite(configuredLimit) ? Math.min(1, Math.max(0, configuredLimit)) : 0;
+  // Blank means "use the default": an env key present but empty is '', and Number('') is 0,
+  // which would make every call fail as budget_exceeded. A value that is present but
+  // unreadable still fails closed, because a typo must not become permission to spend.
+  const rawLimit = process.env.AI_DAILY_LIMIT_USD?.trim();
+  const configuredLimit = rawLimit ? Number(rawLimit) : 0.10;
+  const limit = rawLimit === '' || rawLimit === undefined
+    ? 0.10
+    : Number.isFinite(configuredLimit) ? Math.min(1, Math.max(0, configuredLimit)) : 0;
   const day = new Date().toISOString().slice(0, 10);
   await prisma.aiDailyUsage.upsert({
     where: { userId_day: { userId, day } }, create: { userId, day }, update: {},

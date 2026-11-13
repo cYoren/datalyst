@@ -1,7 +1,10 @@
 import 'server-only';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { aiCapabilityEnabled } from '@/ai/flags';
 import { AiExecutionPolicy } from '@/ai/policy/runner';
+import { checkAiRateLimit } from '@/ai/rate-limit';
+import { logAiRun } from '@/ai/run-log';
 import { aiConfiguration, InsightAvailabilityError, reserveAiBudget } from './ai-insights.service';
 
 /**
@@ -23,6 +26,7 @@ const aiAnswer = z.object({
 export async function parseQuickLog(userId: string, text: string) {
     const profile = await prisma.user.findUnique({ where: { id: userId }, select: { aiConsent: true } });
     if (!profile?.aiConsent) throw new InsightAvailabilityError('consent_required', 403);
+    if (!aiCapabilityEnabled('quick_log')) throw new InsightAvailabilityError('disabled', 503);
     const config = aiConfiguration();
     if (!config) throw new InsightAvailabilityError('unavailable', 503);
 
@@ -50,11 +54,25 @@ export async function parseQuickLog(userId: string, text: string) {
         ],
     };
     await reserveAiBudget(userId, config, request);
+    // Charged after the budget reservation, so a user who is already over budget does not
+    // also burn minute quota on a call that cannot proceed.
+    if (!checkAiRateLimit(userId, 'quick_log').allowed) throw new InsightAvailabilityError('rate_limited', 429);
     const policy = new AiExecutionPolicy({
         provider: config.createProvider(), allowlist: { [config.modelId]: config.spec },
         defaultTimeoutMs: 15000, retryOptions: { maxRetries: 0 },
+        onRunComplete: logAiRun,
     });
-    const response = await policy.execute(request);
+    // Hold the consent row lock from the last check through dispatch, the same way
+    // `generateAiInsights` does: a revoke waits for an in-flight request, and a request
+    // started after a revoke sees aiConsent = false, so nothing is sent once revoke returns.
+    const response = await prisma.$transaction(async (tx) => {
+        const stillConsented = await tx.user.updateMany({
+            where: { id: userId, aiConsent: true },
+            data: { aiConsent: true },
+        });
+        if (!stillConsented.count) throw new InsightAvailabilityError('consent_required', 403);
+        return policy.execute(request);
+    }, { timeout: 30000, maxWait: 5000 });
     return toProposals(response.content, vars);
 }
 

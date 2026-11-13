@@ -434,17 +434,17 @@ Deleting a user must delete or irreversibly detach AI artifacts and related meta
 
 **Deliverables:**
 
-- [ ] Create `src/ai` module boundary and provider-neutral interface.
-- [ ] Add Zod schemas for AI requests, artifacts, and provider responses.
-- [ ] Add provider adapter with timeout, retry, rate limit, and cost limit.
-- [ ] Add explicit AI data-processing consent and withdrawal path.
-- [ ] Add safe AI run metadata and correlation IDs.
-- [ ] Add redaction and sensitive-data logging tests.
-- [ ] Create synthetic evaluation fixtures. Never use real user data.
-- [ ] Define model/provider configuration through server-side environment variables.
-- [ ] Add feature flags so every AI capability can be disabled independently.
+- [x] Create `src/ai` module boundary and provider-neutral interface. — `src/ai/providers/types.ts`, `src/ai/providers/index.ts`, every barrel marked `server-only`; `__tests__/server-only.test.ts` fails if a client file imports one.
+- [x] Add Zod schemas for AI requests, artifacts, and provider responses. — requests/responses in `src/ai/schemas/index.ts`; the artifact and evidence contracts from §7 in `src/ai/schemas/artifacts.ts` (`__tests__/artifacts.test.ts`).
+- [x] Add provider adapter with timeout, retry, rate limit, and cost limit. — `src/ai/policy/runner.ts` (timeout, retry, cost), `src/ai/rate-limit.ts` (per user per capability, `AI_RUNS_PER_MINUTE`; an in-process counter, so per instance), `src/ai/policy/cost-tracker.ts` plus the durable `aiDailyUsage` reservation in `services/ai-insights.service.ts`. The rate limit is enforced by the two callers, not by the policy itself, so a new caller must charge it.
+- [x] Add explicit AI data-processing consent and withdrawal path. — `user.aiConsent` / `aiConsentAt`, `PATCH /api/insights/ai/consent` clears cached AI output, and dispatch holds the consent row lock so a request cannot start after a revoke returns.
+- [x] Add safe AI run metadata and correlation IDs. — `AiRunMetadata` on every run, `aiRunMetadataSchema` as the one persisted shape (asserted against a real run's fields), and `src/ai/run-log.ts` as the only writer.
+- [x] Add redaction and sensitive-data logging tests. — `src/ai/redaction.ts` (a metadata string must be a single token, so prose cannot pass) and `src/ai/run-log.ts`, the one log path, which runs the guard first and drops what fails; `__tests__/redaction.test.ts` and `__tests__/run-log.test.ts`.
+- [x] Create synthetic evaluation fixtures. Never use real user data. — `src/ai/__tests__/fixtures.ts`: goals, quick logs, evidence shapes, invalid model replies, and strings that must never be logged.
+- [x] Define model/provider configuration through server-side environment variables. — `src/ai/config.ts`; nothing provider-shaped reaches the client bundle.
+- [x] Add feature flags so every AI capability can be disabled independently. — `src/ai/flags.ts`; `AI_ENABLED=off` is the master switch, `AI_FEATURE_<CAPABILITY>` per capability, unshipped capabilities default off.
 
-**Exit gate:** A fake provider can run the complete request pipeline in tests, invalid model output is rejected, and no sensitive payload reaches logs.
+**Exit gate:** A fake provider can run the complete request pipeline in tests, invalid model output is rejected, and no sensitive payload reaches logs. — met by `__tests__/fake-provider.test.ts`, `__tests__/runner.test.ts`, `__tests__/artifacts.test.ts` and `__tests__/redaction.test.ts`. Current state, numbers and gaps: [`docs/AI-PLATFORM-STATE.md`](docs/AI-PLATFORM-STATE.md).
 
 ### Phase 1: AI Protocol Builder
 
@@ -615,6 +615,14 @@ Never log raw habit entries, journals, prompts, or model responses by default.
 - event sourcing of the entire application
 - automatic medication, supplement, or lifestyle prescriptions
 - replacing the deterministic statistics engine with an LLM
+- native navigation chrome in the shells (native tab bar, Liquid Glass, native transitions)
+
+### Adjacent track: native surfaces
+
+The Capacitor shells and the home screen widgets are not AI work, so this roadmap does not plan them.
+The decision log (Capstart, Capacitor Native UI and NativeScript rejected; Capgo Native Navigation
+deferred until the WebView has local assets), the widget inventory and the next-build checklist live in
+[`docs/native-surfaces.md`](docs/native-surfaces.md).
 
 ### Adjacent track: hosted research studies
 

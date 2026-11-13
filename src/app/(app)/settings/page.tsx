@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AiInsightsPanel } from '@/components/insights/AiInsightsPanel';
 import { useUser } from '@/lib/hooks';
 import { Button, buttonVariants } from '@/components/ui/Button';
@@ -35,7 +35,10 @@ export default function SettingsPage() {
     const [archiving, setArchiving] = useState(false);
     const [message, setMessage] = useState('');
 
-    useEffect(() => {
+    // Copy the profile into the form whenever `user` changes (adjusted during render, not in an effect).
+    const [syncedUser, setSyncedUser] = useState<typeof user>();
+    if (syncedUser !== user) {
+        setSyncedUser(user);
         if (user?.profile) {
             setProfile({
                 name: user.profile.name || '',
@@ -44,7 +47,7 @@ export default function SettingsPage() {
                 healthDataConsent: !!user.profile.healthDataConsent,
             });
         }
-    }, [user]);
+    }
 
     const handleSave = async () => {
         setSaving(true);

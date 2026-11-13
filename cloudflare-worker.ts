@@ -30,9 +30,21 @@ async function fetchWithEdgeCache(request: Request, env: Env, ctx: Ctx): Promise
 
 // Shipped native apps check these from a local origin before opening the site (www/index.html).
 // Without this header the check fails and they show "not reachable". The check sends no cookies.
-const NATIVE_SHELL_CHECK = new Set(["/dashboard", "/login"]);
+const NATIVE_SHELL_CHECK = new Set(["/", "/dashboard", "/login"]);
 
 async function fetchWithShellCors(request: Request, env: Env, ctx: Ctx): Promise<Response> {
+  // Some WebViews preflight the check (cache: "no-store" adds cache headers); answer it directly.
+  if (request.method === "OPTIONS" && NATIVE_SHELL_CHECK.has(new URL(request.url).pathname)) {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": request.headers.get("access-control-request-headers") ?? "*",
+        "access-control-max-age": "86400",
+      },
+    });
+  }
   const response = await fetchWithEdgeCache(request, env, ctx);
   if (request.method !== "GET" || !NATIVE_SHELL_CHECK.has(new URL(request.url).pathname)) return response;
   const out = new Response(response.body, response);

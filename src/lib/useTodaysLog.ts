@@ -7,6 +7,7 @@ import { useUser } from '@/lib/hooks';
 import { formatLocalDateKey } from '@/lib/dateUtils';
 import { recordCheckIn } from './reviewPrompt';
 import { syncWidget } from './widget';
+import { nextCheckIn } from './widget-next';
 
 // Types for Today's Log - designed for easy React Native migration
 export interface ActiveAssignment {
@@ -123,7 +124,11 @@ export function useTodaysLog() {
                 setAuthExpired(false);
                 // Every real fetch (including the 60s poll) re-stamps the home
                 // screen widget, so it follows midnight and never shows cache.
-                if (summary.date) void syncWidget(summary.date, summary.logged, summary.total);
+                if (summary.date) {
+                    // The widget names the next check-in so it is useful without opening
+                    // the app. Experiment-controlled variables are managed elsewhere.
+                    void syncWidget(summary.date, summary.logged, summary.total, nextCheckIn(summary.variables));
+                }
             },
         }
     );

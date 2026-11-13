@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import s from './landing.module.css';
 import { BRAND, withCanonical } from '@/lib/brand';
+import { HOMEPAGE_FAQ } from '@/lib/faq';
 
 export const metadata: Metadata = withCanonical('/', {
   title: BRAND.title,
@@ -229,8 +230,31 @@ export default function Home() {
           </div>
         </section>
 
+        <section className={s.section} id="questions">
+          <div className={s.label}><span><b>04</b> / Questions</span><span>Straight answers</span></div>
+          <div className={s.intro}>
+            <h2 className={s.h2}>The questions people ask <span className={s.accentTeal}>before</span> they start.</h2>
+          </div>
+          <div className={s.questions}>
+            {HOMEPAGE_FAQ.map((item) => (
+              <div key={item.q} className={s.question}>
+                <h3 className={s.h3}>{item.q}</h3>
+                <p className={s.body}>{item.a}</p>
+              </div>
+            ))}
+          </div>
+          <p className={s.sources}>
+            Method and sources: randomized N of 1 trials as described on
+            {' '}<a href="https://en.wikipedia.org/wiki/N-of-1_trial" target="_blank" rel="noopener noreferrer">Wikipedia</a>,
+            the implementation is open source on
+            {' '}<a href="https://github.com/cYoren/datalyst" target="_blank" rel="noopener noreferrer">GitHub</a>
+            {' '}under the
+            {' '}<a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0 license</a>.
+          </p>
+        </section>
+
         <section className={s.section}>
-          <div className={s.label}><span><b>04</b> / Start</span><span>Free to start</span></div>
+          <div className={s.label}><span><b>05</b> / Start</span><span>Free to start</span></div>
           <div className={s.cta}>
             <h2 className={s.h2}>Start with how you <span className={s.accent}>feel</span> today.</h2>
             <p className={s.lede}>Log one symptom and one habit. Datalyst takes it from there.</p>
@@ -247,6 +271,20 @@ export default function Home() {
             <Link href="/contact">Contact</Link>
           </nav>
         </footer>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: HOMEPAGE_FAQ.map((item) => ({
+                '@type': 'Question',
+                name: item.q,
+                acceptedAnswer: { '@type': 'Answer', text: item.a },
+              })),
+            }).replace(/</g, '\\u003c'),
+          }}
+        />
       </main>
     </div>
   );

@@ -43,7 +43,7 @@ jobs:
       IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
       KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
 
       - name: Select newest Xcode (needs iOS 26 SDK)
         shell: bash
@@ -58,7 +58,7 @@ jobs:
           test "${XCODE_VERSION%%.*}" -ge 26
           test "${SDK_VERSION%%.*}" -ge 26
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: "22"
           cache: npm
@@ -73,7 +73,7 @@ jobs:
         run: node scripts/fix-apple-sign-in-plugin.mjs
 
       - name: Install Ruby dependencies (fastlane, cocoapods)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@v1.338.0
         with:
           ruby-version: '3.3'
           bundler-cache: true
@@ -173,7 +173,7 @@ jobs:
           ls -lah build/export
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: datalyst-ios-ipa
           path: build/export/*.ipa

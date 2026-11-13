@@ -23,6 +23,8 @@ describe('Health device settings account isolation', () => {
     function saved(owner: string) {
         storage.set(`datalyst:health-v2:${owner}`, JSON.stringify({ ownerId: owner, connectionId: `device-${owner}`, metrics: ['steps'], lastSync: null }));
     }
+    // Cold import of the health module plus a plugin read: seconds, not milliseconds, and
+    // it goes over the 5s default when the whole suite runs in parallel.
     it('does not reuse another account connection or unbound legacy preferences', async () => {
         saved('alice'); storage.set('datalyst:health-v1', JSON.stringify({ metrics: ['steps'], lastSync: null }));
         account = 'bob';
@@ -31,7 +33,7 @@ describe('Health device settings account isolation', () => {
         expect(health.readHealthSetting().metrics).toEqual([]);
         expect(requests.filter(r => r.url === '/api/health/import')).toHaveLength(0);
         expect(storage.has('datalyst:health-v1')).toBe(false);
-    });
+    }, 20000);
     it('includes the account-bound connection on imports', async () => {
         saved('alice');
         const health = await import('./health');

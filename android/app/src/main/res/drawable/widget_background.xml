@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- App card surface (globals.css color-bg-card) with the 10% hairline border. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#5D61D5" />
-    <corners android:radius="20dp" />
+    <solid android:color="@color/widget_surface" />
+    <stroke android:width="1dp" android:color="@color/widget_stroke" />
+    <corners android:radius="24dp" />
 </shape>
