@@ -73,3 +73,5 @@ export const aiModelSpecSchema = z.object({
   supportedCapabilities: z.array(aiCapabilitySchema).min(1),
   deprecated: z.boolean().optional().default(false),
 }) satisfies z.ZodType<AiModelSpec>;
+
+export * from './artifacts';

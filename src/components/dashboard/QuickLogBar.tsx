@@ -64,7 +64,7 @@ export function QuickLogBar() {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                setNote(data.state === 'budget_exceeded' ? 'Daily AI limit reached. Log in Check-in below.' : 'Quick log is unavailable right now. Log in Check-in below.');
+                setNote(({ budget_exceeded: 'Daily AI limit reached. Log in Check-in below.', rate_limited: 'That was a lot of quick logs in a minute. Try again shortly, or log in Check-in below.', disabled: 'Plain-language logging is switched off here. Log in Check-in below.', consent_required: 'Turn on AI insights in Settings first, or log in Check-in below.' } as Record<string, string>)[data.state] ?? 'Quick log is unavailable right now. Log in Check-in below.');
                 return;
             }
             setProposals(data.proposals);

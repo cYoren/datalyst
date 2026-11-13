@@ -27,7 +27,9 @@ export const QuickEntryForm = ({ habit, onSuccess, onCancel }: QuickEntryFormPro
     const [logicalDate, setLogicalDate] = useState(format(new Date(), 'yyyy-MM-dd'));
     const toast = useToast();
 
-    React.useEffect(() => {
+    const [syncedHabit, setSyncedHabit] = useState<typeof habit>();
+    if (syncedHabit !== habit) {
+        setSyncedHabit(habit);
         const initial: Record<string, number> = {};
         habit.subvariables.forEach((sub) => {
             if (sub.type === SubvariableType.SCALE_0_10) initial[sub.id] = 5;
@@ -35,7 +37,7 @@ export const QuickEntryForm = ({ habit, onSuccess, onCancel }: QuickEntryFormPro
             else initial[sub.id] = 0;
         });
         setValues(initial);
-    }, [habit]);
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

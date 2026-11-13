@@ -41,7 +41,7 @@ export function AiInsightsPanel({ settings = false }: { settings?: boolean }) {
       const response = await fetch('/api/insights/ai', { method: 'POST' });
       const data = await response.json();
       if (data.state === 'ready' && response.ok) setResult(data.result);
-      else setMessage(({ insufficient_evidence: 'Keep checking in. No reliable correlation packet is available yet.', budget_exceeded: 'Daily AI limit reached. Try again tomorrow.', consent_required: 'Enable AI insights in Settings first.', unavailable: 'AI insights will be available when the service is configured.' } as Record<string, string>)[data.state] ?? 'AI insights are temporarily unavailable. Your statistics remain available.');
+      else setMessage(({ insufficient_evidence: 'Keep checking in. No reliable correlation packet is available yet.', budget_exceeded: 'Daily AI limit reached. Try again tomorrow.', rate_limited: 'That was a lot of insight requests in a minute. Try again shortly.', consent_required: 'Enable AI insights in Settings first.', disabled: 'AI insights are switched off for this deployment. Your statistics are unaffected.', unavailable: 'AI insights will be available when the service is configured.' } as Record<string, string>)[data.state] ?? 'AI insights are temporarily unavailable. Your statistics remain available.');
     } catch { setMessage('Unable to load AI insights.'); }
     finally { setBusy(false); }
   }

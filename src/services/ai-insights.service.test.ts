@@ -3,11 +3,14 @@ const mocks = vi.hoisted(() => ({
   prisma: { user: { findUnique: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
     subvariable: { findMany: vi.fn() }, subvariableEntry: { findMany: vi.fn() },
     insightsCache: { findUnique: vi.fn(), upsert: vi.fn() }, aiDailyUsage: { upsert: vi.fn(), updateMany: vi.fn() }, $transaction: vi.fn() },
-  correlations: vi.fn(), explain: vi.fn(),
+  correlations: vi.fn(), explain: vi.fn(), rateLimit: vi.fn(),
 }));
 vi.mock('@/lib/prisma', () => ({ prisma: mocks.prisma }));
 vi.mock('./stats.service', () => ({ StatsService: { calculateGlobalCorrelations: mocks.correlations } }));
 vi.mock('@/ai/insights', async importOriginal => ({ ...await importOriginal<typeof import('@/ai/insights')>(), explainEvidence: mocks.explain }));
+// The limiter keeps process-wide buckets; its own behaviour is covered in
+// src/ai/__tests__/rate-limit.test.ts, so here it is a switch we can flip.
+vi.mock('@/ai/rate-limit', () => ({ checkAiRateLimit: mocks.rateLimit, AI_RUNS_PER_MINUTE: 6 }));
 import { generateAiInsights } from './ai-insights.service';
 import { buildEvidence, evidenceHash } from '@/ai/insights';
 
@@ -27,6 +30,7 @@ beforeEach(() => {
   mocks.prisma.$transaction.mockImplementation(fn => fn(mocks.prisma));
   mocks.correlations.mockResolvedValue([row]);
   mocks.explain.mockResolvedValue({ version: 1, findings: [] });
+  mocks.rateLimit.mockReturnValue({ allowed: true, limit: 6, remaining: 5, resetSeconds: 60 });
 });
 
 describe('AI insight consent, ownership and durable budget', () => {
@@ -92,5 +96,36 @@ describe('AI insight consent, ownership and durable budget', () => {
     const result = await generateAiInsights('owner');
     expect(result.cached).toBe(false);
     expect(mocks.explain).toHaveBeenCalled();
+  });
+
+  it('refuses to spend a provider call once the per-minute limit is spent', async () => {
+    // The coarse request bucket is still open; the provider-call bucket is not.
+    mocks.rateLimit.mockImplementation((_user: string, capability: string) =>
+      capability === 'insights'
+        ? { allowed: false, limit: 6, remaining: 0, resetSeconds: 42 }
+        : { allowed: true, limit: 12, remaining: 11, resetSeconds: 60 });
+    await expect(generateAiInsights('owner')).rejects.toMatchObject({ state: 'rate_limited', status: 429 });
+    expect(mocks.rateLimit).toHaveBeenCalledWith('owner', 'insights');
+    expect(mocks.explain).not.toHaveBeenCalled();
+    // The budget hold is taken first, so an over-budget user does not also burn minute quota;
+    // the cost of that order is one unused hold, which is the conservative side.
+    expect(mocks.prisma.aiDailyUsage.updateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops a hot loop before the correlation query, not after it', async () => {
+    mocks.rateLimit.mockReturnValue({ allowed: false, limit: 12, remaining: 0, resetSeconds: 30 });
+    await expect(generateAiInsights('owner')).rejects.toMatchObject({ state: 'rate_limited' });
+    expect(mocks.correlations).not.toHaveBeenCalled();
+    expect(mocks.prisma.subvariableEntry.findMany).not.toHaveBeenCalled();
+  });
+
+  it('serves a cached payload without charging the provider call', async () => {
+    const facts = buildEvidence([{ ...row, variable1: { ...row.variable1, habitId: 'habit-a' }, variable2: { ...row.variable2, habitId: 'habit-b' } }]);
+    mocks.prisma.insightsCache.findUnique.mockResolvedValue({ aiEvidenceHash: evidenceHash(facts, {}, 'deepseek-flash'), aiExpiresAt: new Date(Date.now() + 60000), aiData: { version: 3, synthetic: true } });
+    await generateAiInsights('owner');
+    // The coarse request bucket is charged before the expensive queries; the provider-call
+    // bucket is not, so a cached answer costs nothing.
+    expect(mocks.rateLimit).toHaveBeenCalledWith('owner', 'insights:request', 12);
+    expect(mocks.rateLimit).not.toHaveBeenCalledWith('owner', 'insights');
   });
 });

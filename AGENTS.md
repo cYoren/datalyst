@@ -4,6 +4,18 @@
 
 Datalyst is a personal statistics and insight product, separate from MedHub. Its canonical VPS working copy is `/root/projects/Datalyst-project`; GitHub is `https://github.com/cYoren/Datalyst-project`. Its public domain is `https://datalyst.one`.
 
+**Two repositories, one codebase — never confuse them.**
+
+- `cYoren/Datalyst-project` is the **private, proprietary repository and the source of truth**: the
+  product, the store builds, the sites, `clients/`, `tasks/`. Every change lands there first.
+- `cYoren/datalyst` is the **public AGPL-3.0 snapshot**, regenerated from the private tree with
+  `git archive HEAD` (`.gitattributes` export-ignores `clients/`, `tasks/`, `.gitattributes` itself;
+  gitleaks runs before the push). Self-hosters clone that one.
+
+Never treat the public snapshot as a source of truth. The next export replaces whatever is in it, so a
+change made only there is a change that disappears — land it in the private repo and let the snapshot
+follow. Whenever the two disagree, the private repo is right.
+
 ## Start here
 
 1. Run `git remote -v`, `git status --short --branch`, and `git branch --show-current`.

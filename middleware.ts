@@ -13,6 +13,10 @@ const publicDiscoveryPaths = new Set([
   '/auth.md',
   '/api/openapi.json',
   '/docs/agent-api',
+  // Machine-readable files AI crawlers read; a login redirect hides them.
+  '/ai.txt',
+  '/llms.txt',
+  '/llms-full.txt',
 ]);
 
 function wantsMarkdown(request: NextRequest) {
@@ -27,9 +31,15 @@ export async function middleware(request: NextRequest) {
   // Agent endpoints authenticate with API keys, not the session cookie, so the
   // login redirect must not apply to them.
   const isAgentApi = pathname.startsWith('/api/v1/') || pathname === '/api/mcp' || pathname.startsWith('/api/mcp/');
+  // The widget log route authenticates with its own device key, so a missing session
+  // cookie must not bounce it to /login. Only that one route: /api/widget/token is a
+  // session route, and updateSession is what refreshes an expired access token, so
+  // exempting the whole prefix would 401 a signed-in user with a stale cookie.
+  const isWidgetApi = pathname === '/api/widget/log';
   // The retention route checks its own secret; the cron has no session and would be sent to /login.
   const isCron = pathname === '/api/admin/retention';
-  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAgentApi || isCron) {
+  const isAiDirectory = pathname.startsWith('/ai/');
+  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAiDirectory || isAgentApi || isWidgetApi || isCron) {
     return NextResponse.next();
   }
 

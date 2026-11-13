@@ -3,7 +3,9 @@ import { Archivo, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { CookieNotice } from "@/components/ui/CookieNotice";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { CloudflareAnalytics } from "@/components/analytics/CloudflareAnalytics";
 import { NativeAuthCallback } from "@/components/auth/NativeAuthCallback";
+import { NativeCheckinLink } from "@/components/native/NativeCheckinLink";
 import { WebMcpTools } from "@/components/agent/WebMcpTools";
 import { BRAND, siteOrigin } from "@/lib/brand";
 
@@ -71,35 +73,66 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${archivo.variable} ${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
         <NativeAuthCallback />
+        <NativeCheckinLink />
         <WebMcpTools />
         <ServiceWorkerRegister />
+        <CloudflareAnalytics />
         {children}
         <CookieNotice />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              "name": "Datalyst",
-              "description": BRAND.shortPitch,
-              "url": siteOrigin(),
-              "applicationCategory": "HealthApplication",
-              "operatingSystem": "Web, iOS, Android",
-              "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-              },
-              "featureList": [
-                "Symptom logging",
-                "Habit logging",
-                "Correlations between habits and symptoms",
-                "Personal history and charts",
-                "Randomized personal experiments",
-                "Biohacking and quantified self tracking"
-              ]
-            })
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': `${siteOrigin()}/#organization`,
+                  name: BRAND.name,
+                  url: siteOrigin(),
+                  logo: { '@type': 'ImageObject', url: `${siteOrigin()}/icon-512.png`, width: 512, height: 512 },
+                  description: BRAND.description,
+                  email: 'support@datalyst.one',
+                  sameAs: ['https://github.com/cYoren/datalyst'],
+                  address: { '@type': 'PostalAddress', addressCountry: 'BR' },
+                  areaServed: 'Worldwide',
+                  contactPoint: {
+                    '@type': 'ContactPoint',
+                    email: 'support@datalyst.one',
+                    contactType: 'customer support',
+                  },
+                },
+                {
+                  '@type': 'WebSite',
+                  '@id': `${siteOrigin()}/#website`,
+                  url: siteOrigin(),
+                  name: BRAND.name,
+                  description: BRAND.description,
+                  publisher: { '@id': `${siteOrigin()}/#organization` },
+                  inLanguage: 'en',
+                  dateModified: '2026-11-11',
+                },
+                {
+                  '@type': 'SoftwareApplication',
+                  '@id': `${siteOrigin()}/#app`,
+                  name: BRAND.name,
+                  description: BRAND.shortPitch,
+                  url: siteOrigin(),
+                  publisher: { '@id': `${siteOrigin()}/#organization` },
+                  applicationCategory: 'HealthApplication',
+                  operatingSystem: 'Web, iOS, Android',
+                  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+                  featureList: [
+                    'Symptom logging',
+                    'Habit logging',
+                    'Correlations between habits and symptoms',
+                    'Personal history and charts',
+                    'Randomized personal experiments',
+                    'Biohacking and quantified self tracking',
+                  ],
+                },
+              ],
+            }).replace(/</g, '\\u003c'),
           }}
         />
       </body>

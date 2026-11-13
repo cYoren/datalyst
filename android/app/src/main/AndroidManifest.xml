@@ -23,6 +23,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Widget tap and other in-app links. The auth callback lands here too;
+                 src/lib/native-auth.ts owns datalyst://auth. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="datalyst" />
+            </intent-filter>
+
         </activity>
 
         <receiver
@@ -36,6 +45,10 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_today_info" />
         </receiver>
+
+        <receiver
+            android:name=".WidgetLogReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

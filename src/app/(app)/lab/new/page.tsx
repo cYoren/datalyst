@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
@@ -53,26 +53,25 @@ export default function NewExperimentPage() {
     ]);
 
     // Auto-generate name when pre-filled from query params
-    useEffect(() => {
-        if (!habits || name) return;
+    // (runs once, when the habits first arrive; adjusting state during render avoids an extra effect pass)
+    const [nameSeeded, setNameSeeded] = useState(false);
+    if (habits && !nameSeeded) {
+        setNameSeeded(true);
         const indParam = searchParams.get('independent');
         const depParam = searchParams.get('dependent');
-        if (indParam && depParam) {
+        if (!name && indParam && depParam) {
             const indHabit = habits.find(h => h.id === indParam);
             const depHabit = habits.find(h => h.id === depParam);
             if (indHabit && depHabit) {
                 setName(`Does ${indHabit.name} affect ${depHabit.name}?`);
             }
         }
-    }, [habits, name, searchParams]);
+    }
 
     // Reset blockSize to nearest valid multiple when conditions change
-    useEffect(() => {
-        const n = conditions.length;
-        if (n > 0 && blockSize % n !== 0) {
-            setBlockSize(n * 2);
-        }
-    }, [blockSize, conditions.length]);
+    if (conditions.length > 0 && blockSize % conditions.length !== 0) {
+        setBlockSize(conditions.length * 2);
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

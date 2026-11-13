@@ -5,12 +5,15 @@
     <string name="package_name">com.datalyst.app</string>
     <string name="custom_url_scheme">com.datalyst.app</string>
     <string name="widget_title">Today\'s check-in</string>
-    <string name="widget_description">Today\'s check-in progress</string>
+    <string name="widget_description">How much of today is logged, and what is next.</string>
     <string name="widget_not_started">Not logged yet</string>
     <string name="widget_in_progress">Keep going</string>
     <string name="widget_done">Done for today</string>
     <string name="widget_nothing_today">Nothing to log today</string>
     <string name="widget_open_app">Open Datalyst to set up your check-in</string>
+    <string name="widget_next">Next: %1$s</string>
+    <string name="widget_log">Log</string>
+    <string name="widget_log_failed">Couldn’t log, tap to open</string>
     <!-- Shown by Health Connect when the user taps "Privacy policy" in the permission sheet -->
     <string name="health_connect_privacy_policy_url">https://www.datalyst.one/privacy</string>
 </resources>

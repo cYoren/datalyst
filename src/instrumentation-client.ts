@@ -10,12 +10,6 @@ Sentry.init({
     environment: process.env.NODE_ENV,
     // 10% of page loads, enough to see a slow route without paying for all of them.
     tracesSampleRate: 0.1,
-    // Keep a replay only when the session ends in an error.
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: dsn ? 1.0 : 0,
-    integrations: [
-        Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
-    ],
 });
 
 // Navigation spans: without this export the SDK cannot instrument client-side

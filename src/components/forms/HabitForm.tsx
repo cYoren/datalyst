@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TrackerIcon, TRACKER_ICONS, DEFAULT_TRACKER_ICON, resolveTrackerIcon } from '@/components/ui/TrackerIcon';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -64,7 +64,9 @@ export const HabitForm = ({ initialData, onSubmit, isSubmitting }: HabitFormProp
     const [subvariables, setSubvariables] = useState<HabitSubvariable[]>(initialData?.subvariables || []);
 
     // Auto-populate from template
-    useEffect(() => {
+    const [syncedTemplate, setSyncedTemplate] = useState<Template | null | undefined>();
+    if (syncedTemplate !== selectedTemplate) {
+        setSyncedTemplate(selectedTemplate);
         if (selectedTemplate) {
             // Only update if not in edit mode (no initialData)
             if (!initialData) {
@@ -90,7 +92,7 @@ export const HabitForm = ({ initialData, onSubmit, isSubmitting }: HabitFormProp
                 }
             }
         }
-    }, [selectedTemplate, initialData]);
+    }
 
     const addSubvariable = (type: SubvariableType) => {
         let metadata = {};

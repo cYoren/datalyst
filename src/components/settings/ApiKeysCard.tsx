@@ -20,6 +20,18 @@ function formatDate(value: string | null) {
     return value ? new Date(value).toLocaleDateString() : 'Never';
 }
 
+const SCOPE_LABELS: Record<string, string> = {
+    read: 'read',
+    write: 'write',
+    'research:read': 'research read',
+    'research:write': 'research write',
+    'widget:log': 'check-in from the home screen',
+};
+
+function scopeLabels(scopes: string[]) {
+    return scopes.map((scope) => SCOPE_LABELS[scope] ?? scope).join(' + ');
+}
+
 export function ApiKeysCard() {
     const origin = useOrigin();
     const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -37,7 +49,16 @@ export function ApiKeysCard() {
     };
 
     useEffect(() => {
-        load().catch(() => setError('Unable to load API keys.'));
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/user/api-keys');
+                if (res.ok && !cancelled) setKeys((await res.json()).keys);
+            } catch {
+                if (!cancelled) setError('Unable to load API keys.');
+            }
+        })();
+        return () => { cancelled = true; };
     }, []);
 
     const handleCreate = async () => {
@@ -144,7 +165,7 @@ export function ApiKeysCard() {
                             <div className="min-w-0 space-y-1">
                                 <p className="font-medium text-[var(--text-primary)]">{key.name}</p>
                                 <p className="text-xs text-[var(--text-tertiary)]">
-                                    <code>{key.prefix ?? 'legacy'}…</code> · {key.scopes.join(' + ')} · created {formatDate(key.createdAt)} · last used {formatDate(key.lastUsedAt)}
+                                    <code>{key.prefix ?? 'legacy'}…</code> · {scopeLabels(key.scopes)} · created {formatDate(key.createdAt)} · last used {formatDate(key.lastUsedAt)}
                                 </p>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleRevoke(key)}>Revoke</Button>

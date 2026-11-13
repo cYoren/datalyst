@@ -12,21 +12,29 @@ describe('Server-Only Boundary Enforcement', () => {
     '../../../node_modules/next/dist/compiled/server-only/index.js'
   );
 
-  // Enumerate all supported public and direct runtime entry points
-  const runtimeModuleRelativePaths = [
-    'index.ts',
-    'schemas/index.ts',
-    'providers/index.ts',
-    'providers/allowlist.ts',
-    'providers/errors.ts',
-    'providers/fake-provider.ts',
-    'providers/anthropic.ts',
-    'insights.ts',
-    'policy/index.ts',
-    'policy/cost-tracker.ts',
-    'policy/retry.ts',
-    'policy/runner.ts',
-  ];
+  // Every runtime module in src/ai, discovered rather than listed: a hand-maintained list
+  // silently stops covering the next file someone adds, which is how four modules
+  // (flags, redaction, rate-limit, schemas/artifacts) sat outside this check.
+  // `providers/types.ts` is declarations only: it erases at compile time and cannot carry a
+  // value into a client bundle, so it has no runtime marker to check.
+  const TYPES_ONLY = new Set(['providers/types.ts']);
+
+  const runtimeModuleRelativePaths = (function walk(dir: string, prefix = ''): string[] {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      if (entry.name === '__tests__' || entry.name === 'README.md') return [];
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) return walk(path.join(dir, entry.name), rel);
+      return entry.name.endsWith('.ts') && !TYPES_ONLY.has(rel) ? [rel] : [];
+    });
+  })(aiRootDir);
+
+  it('discovers every runtime module, not a hand-maintained subset', () => {
+    // A sanity floor: if the walk ever returns nothing, the loop below would pass vacuously.
+    expect(runtimeModuleRelativePaths.length).toBeGreaterThan(10);
+    expect(runtimeModuleRelativePaths).toContain('flags.ts');
+    expect(runtimeModuleRelativePaths).toContain('schemas/artifacts.ts');
+    expect(runtimeModuleRelativePaths).toContain('run-log.ts');
+  });
 
   it('verifies that every supported public and direct runtime entry contains the server-only marker', () => {
     for (const relPath of runtimeModuleRelativePaths) {

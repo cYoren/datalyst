@@ -215,6 +215,15 @@
 /* Final CTA */
 .cta { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; padding: 88px 28px; }
 
+/* Questions */
+.questions { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line); }
+.question { display: flex; flex-direction: column; gap: 10px; padding: 28px 24px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.question:nth-child(2n) { border-right: 0; }
+.question:last-child { border-bottom: 0; }
+.sources { margin: 0; padding: 20px 24px 28px; color: var(--faint); font-size: 0.85rem; line-height: 1.6; }
+.sources a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.sources a:hover { color: var(--text); }
+
 /* Footer */
 .footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 28px; color: var(--faint); font-size: 0.8rem; }
 .footer nav { display: flex; gap: 20px; }
@@ -225,9 +234,9 @@
   .hero, .intro, .research { grid-template-columns: 1fr; }
   .heroVisual { border-left: 0; border-top: 1px solid var(--line); }
   .researchCopy { border-right: 0; border-bottom: 1px solid var(--line); }
-  .lineup, .audiences { grid-template-columns: 1fr; }
-  .card, .audience { border-right: 0; border-bottom: 1px solid var(--line); }
-  .card:last-child, .audience:last-child { border-bottom: 0; }
+  .lineup, .audiences, .questions { grid-template-columns: 1fr; }
+  .card, .audience, .question { border-right: 0; border-bottom: 1px solid var(--line); }
+  .card:last-child, .audience:last-child, .question:last-child { border-bottom: 0; }
 }
 
 @media (max-width: 600px) {

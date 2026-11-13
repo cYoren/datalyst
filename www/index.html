@@ -25,7 +25,7 @@
       async function openDatalyst() {
         status.textContent = "Opening Datalyst...";
         try {
-          await fetch(target, { mode: "cors", cache: "no-store" });
+          await fetch(target, { mode: "no-cors", cache: "no-store" }); // opaque reply is enough to prove the site is reachable
           window.location.replace(target);
         } catch (_) {
           status.textContent = "Datalyst is not reachable right now. Check your connection and retry.";
