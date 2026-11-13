@@ -323,9 +323,14 @@ export default function DashboardPage() {
                 />
             )}
 
-            {/* Experiment Command Center - Optional advanced execution */}
+            {/* Experiment Command Center - Optional advanced execution. It hides itself when
+                there is no active experiment, so it is not gated on habits: a user who archived
+                a tracker mid-trial still has an experiment to record against. */}
             <ProtocolCommandCenter />
-            <AiInsightsPanel />
+            {/* AI insights come after there is something to explain. With no tracker yet this
+                panel is the first thing a new account sees and it cannot do anything, while the
+                one action that matters is creating a tracker. */}
+            {habits.length > 0 && <AiInsightsPanel />}
 
             {/* Trackers List */}
             <div className="space-y-6 animate-slide-up">

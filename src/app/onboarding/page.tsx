@@ -34,12 +34,24 @@ export default function OnboardingPage() {
     const created = useRef(new Set<string>());
 
     const availableBundles = useMemo(() => getBundlesForFocusArea(focus), [focus]);
+    // The real size of the sets this focus area offers, so the copy cannot promise 2 or 3 while
+    // the packs carry five.
+    const packSizes = useMemo(() => availableBundles.map((bundle) => bundle.protocolIds.length), [availableBundles]);
+    const packRange = packSizes.length
+        ? (Math.min(...packSizes) === Math.max(...packSizes)
+            ? `${packSizes[0]}`
+            : `${Math.min(...packSizes)} to ${Math.max(...packSizes)}`)
+        : null;
     const needsConsent = HEALTH_FOCUS.includes(focus);
 
     const pickFocus = (name: string) => {
         setFocus(name);
-        const first = getBundlesForFocusArea(name)[0];
-        setSelectedBundles(new Set(first ? [first.id] : []));
+        // Preselect the smallest set, not the first one listed. Symptoms used to open on a
+        // five-tracker pack while the page promised two or three, which is the exact effort
+        // mismatch that loses people before their first log.
+        const smallest = [...getBundlesForFocusArea(name)]
+            .sort((a, b) => a.protocolIds.length - b.protocolIds.length)[0];
+        setSelectedBundles(new Set(smallest ? [smallest.id] : []));
         window.scrollTo(0, 0);
     };
 
@@ -172,7 +184,10 @@ export default function OnboardingPage() {
                             Pick what to track
                         </h1>
                         <p className="mt-2 text-[var(--text-secondary)]">
-                            Each set is 2 or 3 trackers chosen so their patterns show up together. You can change them anytime.
+                            {packRange
+                                ? `Each set is ${packRange} trackers chosen so their patterns show up together.`
+                                : 'Each set is chosen so its patterns show up together.'}{' '}
+                            Most people start with one set; you can add or remove trackers anytime.
                         </p>
 
                         <div className="mt-6 space-y-3">
