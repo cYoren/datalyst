@@ -22,6 +22,8 @@ export interface EntryEditFormProps {
             name: string;
             icon: string;
             color: string;
+            /** Set when a connected app owns the tracker, e.g. "advanced-dual-n-back". */
+            createdByAppId?: string | null;
             subvariables: Array<{
                 id: string;
                 name: string;

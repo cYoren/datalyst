@@ -67,6 +67,9 @@ Capacitor shells in `ios/` and `android/`.
 
 ## Documentation
 
+- [`PRODUCT.md`](PRODUCT.md): what Datalyst is, who it is for, and how work is chosen.
+- [`ROADMAP.md`](ROADMAP.md): what is being built, in order.
+- [`docs/CONNECTED-APPS.md`](docs/CONNECTED-APPS.md): how another app will connect (specified, not built).
 - [`docs/researcher-studies.md`](docs/researcher-studies.md): what the hosted-study feature does today, and its data boundary.
 - [`docs/studies-roadmap.md`](docs/studies-roadmap.md): the three gaps between shipped and easy to host.
 - [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md): API keys, scopes, MCP tools, rate limits, the two enrolment paths.
@@ -77,6 +80,9 @@ Capacitor shells in `ios/` and `android/`.
 
 One codebase. `NEXT_PUBLIC_DATALYST_SELF_HOSTED=1` (set in the Docker image) swaps Supabase auth for a single
 local user (`src/lib/self-hosted.ts`). Without it, the app runs as Datalyst Cloud with Supabase auth.
+
+A self-hosted install sends nothing to us: no analytics beacon unless you set your own
+`NEXT_PUBLIC_CF_ANALYTICS_TOKEN` (`src/components/analytics/CloudflareAnalytics.tsx`).
 
 ## License
 

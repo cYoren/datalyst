@@ -8,7 +8,7 @@ import { exampleProtocol } from '@/studies/protocol';
 import { StudyError } from '@/studies/policy';
 
 beforeEach(() => vi.clearAllMocks());
-const agent = (scopes: string[]) => ({ userId: 'researcher', apiKeyId: 'key', agentName: 'synthetic', scopes, rateLimitPerMinute: 60 });
+const agent = (scopes: string[]) => ({ userId: 'researcher', apiKeyId: 'key', agentName: 'synthetic', scopes, rateLimitPerMinute: 60, readableSubvariableIds: [] });
 async function call(name: string, args: unknown, scopes: string[]) {
   return handleMcpMessage(agent(scopes), { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
 }

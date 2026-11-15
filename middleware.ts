@@ -38,8 +38,15 @@ export async function middleware(request: NextRequest) {
   const isWidgetApi = pathname === '/api/widget/log';
   // The retention route checks its own secret; the cron has no session and would be sent to /login.
   const isCron = pathname === '/api/admin/retention';
+  // The connected-app token exchange authenticates with a one-time code and a PKCE verifier,
+  // never a session cookie. Bouncing it to /login would leave the app holding a code it can
+  // never spend (`docs/CONNECTED-APPS.md`, step 2).
+  const isConnectToken = pathname === '/api/connect/token';
+  // A monitor has no session. Behind the login gate this endpoint answers 307, so the check that
+  // is supposed to notice an outage would report the login page as healthy.
+  const isHealthCheck = pathname === '/api/health';
   const isAiDirectory = pathname.startsWith('/ai/');
-  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAiDirectory || isAgentApi || isWidgetApi || isCron) {
+  if (pathname.startsWith('/.well-known/') || publicDiscoveryPaths.has(pathname) || isAiDirectory || isAgentApi || isWidgetApi || isCron || isConnectToken || isHealthCheck) {
     return NextResponse.next();
   }
 

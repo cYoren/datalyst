@@ -8,7 +8,7 @@ import { disconnectHealthImport, HealthImportError, importHealthBatch } from '@/
 export async function POST(request: Request) {
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const limit = checkAgentRateLimit(`health-import:${user.id}`, 30);
+    const limit = await checkAgentRateLimit(`health-import:${user.id}`, 30);
     if (!limit.allowed) return rateLimitedResponse(limit);
     const raw = await request.text();
     if (new TextEncoder().encode(raw).length > 1_000_000) return NextResponse.json({ error: 'Payload too large' }, { status: 413 });

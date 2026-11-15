@@ -22,7 +22,7 @@ export async function POST() {
 
         // Each issue writes a row and, at the cap, retires another device's key. A shell that
         // retries on every poll would churn both, so issuance is limited per user.
-        const rateLimit = checkAgentRateLimit(`widget-token:${user.id}`, WIDGET_ISSUES_PER_MINUTE);
+        const rateLimit = await checkAgentRateLimit(`widget-token:${user.id}`, WIDGET_ISSUES_PER_MINUTE);
         if (!rateLimit.allowed) return rateLimitedResponse(rateLimit);
 
         const token = await issueWidgetKey(user.id);

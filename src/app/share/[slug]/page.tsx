@@ -14,6 +14,7 @@ import { getAttestationExplorerUrl } from '@/lib/crypto/eas';
 import { Metadata } from 'next';
 import { canonicalUrl } from '@/lib/brand';
 import { publicEffectSize } from '@/stats/public-effect';
+import { resultCard } from '@/lib/result-card';
 import { frozenPublicOutcomes, inclusiveStudyEnd } from '@/services/public-outcomes';
 
 interface PageProps {
@@ -130,6 +131,19 @@ export default async function SharePage({ params }: PageProps) {
     const binaryConditions = frozen?.binaryConditions ?? experiment.assignments.filter(assignment => !assignment.isWashout).every(assignment => assignment.condition === 'A' || assignment.condition === 'B');
     const effectSize = publicEffectSize(condA, condB, binaryConditions);
     const isPositive = effectSize !== null && effectSize > 0;
+    // The same card the image renders (`ROADMAP.md` A5): verdict first, number with interval under it.
+    const card = resultCard({
+        title: experiment.name,
+        startDate: experiment.startDate ? new Date(experiment.startDate).toISOString().slice(0, 10) : '',
+        endDate: experiment.endDate ? new Date(experiment.endDate).toISOString().slice(0, 10) : '',
+        outcome: experiment.dependent.name,
+        change: experiment.independent?.name?.toLowerCase() ?? 'the change',
+        daysA: condA.length,
+        daysB: condB.length,
+        effectSize,
+        pValue: null,
+        mode: binaryConditions ? 'two-arm' : 'multi-arm',
+    });
 
     // Rigor score
     const rigorInput: RigorScoreInput = {
@@ -166,6 +180,13 @@ export default async function SharePage({ params }: PageProps) {
 
                 {/* Main Results Card */}
                 <Card className="p-6 space-y-6">
+                    {/* The verdict leads; the numbers are the evidence under it (A3, A5). */}
+                    <div className="text-center space-y-2" data-testid="share-verdict">
+                        <div className="text-2xl font-semibold font-display text-[var(--text-primary)]">{card.verdict.headline}</div>
+                        <p className="text-sm text-[var(--text-secondary)]">{card.verdict.sentence}</p>
+                        <p className="text-xs text-[var(--text-tertiary)]">{card.days}</p>
+                    </div>
+
                     {/* Effect Size */}
                     <div className="text-center space-y-2">
                         <div className="text-sm font-medium text-[var(--color-text-secondary)]">
@@ -181,8 +202,10 @@ export default async function SharePage({ params }: PageProps) {
                                 {effectSize === null ? 'Not estimable' : `${effectSize > 0 ? '+' : ''}${effectSize.toFixed(2)}`}
                             </span>
                         </div>
-                        <div className="text-sm text-[var(--color-text-secondary)] ">
-                            {effectSize === null ? 'Requires two conditions A/B, at least two observations each and positive pooled variance.' : `${Math.abs(effectSize) > 0.8 ? 'Large' : Math.abs(effectSize) > 0.5 ? 'Medium' : 'Small'} effect`}
+                        <div className="text-sm text-[var(--color-text-secondary)]">
+                            {card.interval
+                                ? `95% CI ${card.interval.low.toFixed(2)} to ${card.interval.high.toFixed(2)} (approximate)`
+                                : 'No interval to show: the two conditions did not both have enough logged days with variation.'}
                         </div>
                     </div>
 

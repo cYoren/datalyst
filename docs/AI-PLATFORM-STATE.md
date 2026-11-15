@@ -3,7 +3,7 @@
 Living record of what is shipped, what is behind a flag, what the model still gets wrong and
 what is deliberately deferred. Numbers, not adjectives. Newest section first.
 
-The contract is [`ROADMAP.md`](../ROADMAP.md); the native (non-AI) surfaces are in
+The contract is [`AI-PLATFORM.md`](AI-PLATFORM.md) (what is built next is in [`ROADMAP.md`](../ROADMAP.md)); the native (non-AI) surfaces are in
 [`native-surfaces.md`](native-surfaces.md).
 
 ---

@@ -4,7 +4,14 @@ import { getSigner } from '@/lib/crypto/eas';
 import { checkAgentRateLimit, rateLimitedResponse } from '@/lib/agent-rate-limit';
 
 export async function POST(request: Request) {
-    const limit = checkAgentRateLimit('public:proof-verification', 60);
+    // Bucketed per caller, not globally: a shared counter meant 61 anonymous requests from
+    // anywhere locked the public proof checker for everyone (`ROADMAP.md` S2). Cloudflare sets
+    // CF-Connecting-IP; without it, fall back to a forwarded address rather than one global
+    // bucket, so a single abuser cannot deny the endpoint to the rest.
+    const caller = request.headers.get('cf-connecting-ip')
+        ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        ?? 'unknown';
+    const limit = await checkAgentRateLimit(`public:proof-verification:${caller}`, 60);
     if (!limit.allowed) return rateLimitedResponse(limit);
     if (Number(request.headers.get('content-length') || 0) > 1_000_000) return NextResponse.json({ error: 'Proof bundle is too large' }, { status: 413 });
     try {

@@ -1,7 +1,9 @@
 # Studies roadmap: from shipped to easy to host
 
+> Parked by `../ROADMAP.md` (2026-11-14): studies stay shipped and maintained, and this work starts when a researcher is running a real study and asks for it.
+
 Status: current. This is the research-hosting track. It is not the AI copilot roadmap in
-[`ROADMAP.md`](../ROADMAP.md); the two share the statistics engine and nothing else.
+[`AI-PLATFORM.md`](AI-PLATFORM.md); the two share the statistics engine and nothing else.
 
 The capability is not missing. `docs/researcher-studies.md` describes what already runs in production:
 a validated `datalyst.study.v1` protocol with a frozen hash, an invitation with an unchecked opt-in,

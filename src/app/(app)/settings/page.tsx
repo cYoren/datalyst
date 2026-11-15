@@ -12,8 +12,11 @@ import { ReminderControl } from '@/components/ui/ReminderControl';
 import { HealthImportControl } from '@/components/ui/HealthImportControl';
 import { clearWidget } from '@/lib/widget';
 import { ApiKeysCard } from '@/components/settings/ApiKeysCard';
+import { ConnectedAppsSection } from '@/components/settings/ConnectedAppsSection';
 import { CloudCard } from '@/components/settings/CloudCard';
 import { ConnectAiCard } from '@/components/settings/ConnectAiCard';
+import { DataInventoryCard } from '@/components/settings/DataInventoryCard';
+import { AiConsentToggle } from '@/components/settings/AiConsentToggle';
 
 const TIMEZONES = ['UTC', 'America/Sao_Paulo', 'Europe/Lisbon', 'Europe/London', 'America/New_York'];
 const LOCALES = ['en-US', 'pt-BR', 'es-ES'];
@@ -172,6 +175,9 @@ export default function SettingsPage() {
             } catch {
                 // Cleanup is best effort after the server confirmed deletion.
             }
+            // A full navigation on purpose: after deleting the account every cached value in
+            // this tab is about a person who no longer exists.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = '/';
         } catch (error: unknown) {
             setMessage(error instanceof Error ? error.message : 'Unable to delete account. Please contact support.');
@@ -214,7 +220,9 @@ export default function SettingsPage() {
 
             <CloudCard onExport={handleExport} />
 
-            <AiInsightsPanel settings />
+            {/* The consent itself lives in Privacy and consent, in one place (ROADMAP.md A6).
+                This panel then only explains and runs an explanation on demand. */}
+            <AiInsightsPanel />
 
             <Card className="p-6 space-y-5 paper-lift">
                 <div>
@@ -295,6 +303,7 @@ export default function SettingsPage() {
                         I consent to the processing of health-related data (for example, sleep or mood logs).
                     </span>
                 </label>
+                <AiConsentToggle />
                 <Button variant="outline" onClick={handleSave} isLoading={saving}>
                     Save privacy preferences
                 </Button>
@@ -323,6 +332,19 @@ export default function SettingsPage() {
                             />
                     </label>
                 </div>
+            </Card>
+
+            <DataInventoryCard />
+
+            <Card className="p-6 space-y-4 paper-lift mt-6">
+                <div>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">Connected apps</h2>
+                    <p className="text-sm text-[var(--text-tertiary)]">
+                        Apps that write their own trackers here and read only the variables you ticked. Each one has
+                        its own key; disconnecting it revokes that key at once.
+                    </p>
+                </div>
+                <ConnectedAppsSection />
             </Card>
 
             <ApiKeysCard />

@@ -63,7 +63,7 @@ src/ai/
 │   └── index.ts
 ├── schemas/
 │   ├── index.ts                 # Zod validation schemas for requests and responses
-│   └── artifacts.ts             # ROADMAP §7: evidence packet, artifacts, run metadata
+│   └── artifacts.ts             # docs/AI-PLATFORM.md §7: evidence packet, artifacts, run metadata
 ├── policy/
 │   ├── cost-tracker.ts          # In-memory per-user daily cost tracker
 │   ├── retry.ts                 # Transient retry policy with exponential backoff

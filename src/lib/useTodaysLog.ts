@@ -149,6 +149,9 @@ export function useTodaysLog() {
             if (await flush(postQuick, ownerId)) {
                 void mutate();
                 void mutateGlobal('/api/data');
+                // The first-week card is a function of what was just logged: day one appears
+                // because of this save, and the dashboard is already mounted.
+                void mutateGlobal('/api/first-week');
             }
             setPending(pendingCount(ownerId));
         };
@@ -270,6 +273,7 @@ export function useTodaysLog() {
 
         // The dashboard's today-vs-average card and the Data page read this.
         void mutateGlobal('/api/data');
+        void mutateGlobal('/api/first-week');
 
         // Ask for a review only once the check-in is saved, so a prompt can
         // never sit in front of a failed write. Finishing every variable for

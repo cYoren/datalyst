@@ -4,6 +4,7 @@ import {
     clearTime,
     clockLabel,
     decayFactor,
+    isDoseTracker,
     latestDoseTime,
     levelAt,
     minutesOfDay,
@@ -168,5 +169,26 @@ describe('presetForTracker', () => {
     it('falls back to caffeine', () => {
         expect(presetForTracker('Water').key).toBe('caffeine');
         expect(presetForTracker(null).key).toBe('caffeine');
+    });
+});
+
+describe('isDoseTracker', () => {
+    it('offers a known substance as a dose', () => {
+        expect(isDoseTracker('Caffeine', null)).toBe(true);
+        expect(isDoseTracker('Coffee cups', 'cups')).toBe(true);
+        expect(isDoseTracker('Melatonin', 'mg')).toBe(true);
+    });
+
+    it('offers an amount in a dose unit, whatever it is called', () => {
+        expect(isDoseTracker('Adderall', 'mg')).toBe(true);
+        expect(isDoseTracker('Creatine', 'g')).toBe(true);
+        expect(isDoseTracker('Wine', 'ml')).toBe(true);
+    });
+
+    it('leaves counts, ratings and meals out of it', () => {
+        expect(isDoseTracker('Nutrition Meals', 'meals')).toBe(false);
+        expect(isDoseTracker('Mood', undefined)).toBe(false);
+        expect(isDoseTracker('Steps', 'steps')).toBe(false);
+        expect(isDoseTracker('Focus', 'score')).toBe(false);
     });
 });

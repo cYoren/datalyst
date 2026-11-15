@@ -3,8 +3,22 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({ authenticate: vi.fn(), results: vi.fn(), find: vi.fn(), hasScope: vi.fn(() => true) }));
 vi.mock('@/lib/prisma', () => ({ prisma: { experiment: { findFirst: mocks.find } } }));
-vi.mock('@/lib/agent-auth', () => ({ authenticateAgent: mocks.authenticate, hasScope: mocks.hasScope, forbiddenScopeResponse: () => new Response('{}', { status: 403 }), unauthorizedResponse: vi.fn() }));
+vi.mock('@/lib/agent-auth', () => ({ authenticateAgent: mocks.authenticate, authenticateAccountAgent: mocks.authenticate, authenticateAppKey: mocks.authenticate, hasScope: mocks.hasScope, forbiddenScopeResponse: () => new Response('{}', { status: 403 }), unauthorizedResponse: vi.fn() }));
 vi.mock('@/services/experiment.service', () => ({ getExperimentResults: mocks.results }));
+// A counting stand-in for the database counter: the same subject past its limit is refused.
+const counters = vi.hoisted(() => new Map<string, number>());
+const counter = vi.hoisted(() => async (subject: string, limit: number) => {
+    const next = (counters.get(subject) ?? 0) + 1;
+    counters.set(subject, next);
+    const remaining = Math.max(0, limit - next);
+    return { allowed: next <= limit, limit, remaining, resetSeconds: 60 };
+});
+vi.mock('@/lib/rate-limit', () => ({
+    checkKeyRateLimit: counter,
+    checkSubjectRateLimit: counter,
+    appendRateLimitHeaders: (response: Response) => response,
+    rateLimitedResponse: () => new Response(JSON.stringify({ success: false, error: 'Rate limit exceeded' }), { status: 429 }),
+}));
 import { GET } from './route';
 const request = () => GET(new NextRequest('http://localhost/api/v1/agent/results/trial'), { params: Promise.resolve({ trialId: 'trial' }) });
 beforeEach(() => { vi.clearAllMocks(); mocks.authenticate.mockResolvedValue({ userId: 'owner', apiKeyId: 'key', rateLimitPerMinute: 100 }); });

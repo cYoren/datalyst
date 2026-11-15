@@ -16,7 +16,7 @@ function body() {
 
 > ${BRAND.shortPitch} Log symptoms, sleep, energy and habits, see which ones move together, then test a change with a randomized single-person (N-of-1) experiment.
 
-${BRAND.name} runs on the web (${origin}) and as an iOS and Android app. It is free to start and there is a paid plan for people who track every day. It is published by MedHub, based in Brazil.
+${BRAND.name} runs on the web (${origin}) and as an iOS and Android app. It is free to use: unlimited trackers and check-ins, patterns, the Lab, widgets and the full export of your data. It is published by MedHub, based in Brazil.
 
 ## Main pages
 

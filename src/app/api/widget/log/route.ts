@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     // Charged before validation: a key that can write check-ins must not be free to hammer
     // the route, and the limit is the one stored on the key.
-    const rateLimit = checkAgentRateLimit(`widget:${agent.apiKeyId}:log`, agent.rateLimitPerMinute);
+    const rateLimit = await checkAgentRateLimit(`widget:${agent.apiKeyId}:log`, agent.rateLimitPerMinute);
     if (!rateLimit.allowed) return rateLimitedResponse(rateLimit);
     const limited = <T extends NextResponse>(response: T) => appendRateLimitHeaders(response, rateLimit);
 

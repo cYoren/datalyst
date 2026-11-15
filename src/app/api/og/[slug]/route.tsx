@@ -9,8 +9,16 @@ import { ImageResponse } from 'next/og';
 import { prisma } from '@/lib/prisma';
 import { publicEffectSize } from '@/stats/public-effect';
 import { frozenPublicOutcomes, inclusiveStudyEnd } from '@/services/public-outcomes';
+import { resultCard } from '@/lib/result-card';
 
 export const runtime = 'nodejs';
+
+/** A date the row may not have; an unreadable one becomes empty rather than throwing. */
+function isoDay(value: Date | string | null | undefined): string {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+}
 
 interface RouteParams {
     params: Promise<{ slug: string }>;
@@ -27,6 +35,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             dependent: {
                 include: { subvariables: { where: { active: true }, take: 1 } },
             },
+            independent: { select: { name: true } },
             assignments: { orderBy: { date: 'asc' } },
         },
     });
@@ -76,8 +85,27 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Calculate effect size
     const binaryConditions = frozen?.binaryConditions ?? experiment.assignments.filter(assignment => !assignment.isWashout).every(assignment => assignment.condition === 'A' || assignment.condition === 'B');
     const effectSize = publicEffectSize(condA, condB, binaryConditions);
-    const isPositive = effectSize !== null && effectSize > 0;
     const hasAttestation = !!experiment.attestations?.some(record => record.kind === 'RESULTS' && record.mode === 'onchain' && record.status === 'CONFIRMED' && record.uid && record.txHash);
+
+    // Same four things, same order, as the share page: question, days, verdict, number with its
+    // interval (`ROADMAP.md` A5). A null result renders like any other.
+    const card = resultCard({
+        title: experiment.name,
+        startDate: isoDay(experiment.startDate),
+        endDate: isoDay(experiment.endDate),
+        outcome: experiment.dependent.name,
+        change: (experiment.independent?.name ?? 'the change').toLowerCase(),
+        daysA: condA.length,
+        daysB: condB.length,
+        effectSize,
+        pValue: null,
+        mode: binaryConditions ? 'two-arm' : 'multi-arm',
+    });
+
+    const tone =
+        card.verdict.kind === 'clear-change' ? '#5ed3b5'
+            : card.verdict.kind === 'within-noise' ? '#ffd166'
+                : '#94a3b8';
 
     return new ImageResponse(
         (
@@ -92,9 +120,10 @@ export async function GET(request: Request, { params }: RouteParams) {
                     backgroundColor: '#0f172a',
                     backgroundImage: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                     fontFamily: 'system-ui, sans-serif',
+                    padding: 64,
+                    gap: 20,
                 }}
             >
-                {/* Purple accent bar */}
                 <div
                     style={{
                         position: 'absolute',
@@ -106,81 +135,35 @@ export async function GET(request: Request, { params }: RouteParams) {
                     }}
                 />
 
-                {/* Main content */}
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 24,
-                    }}
-                >
-                    {/* Title */}
-                    <div
-                        style={{
-                            fontSize: 48,
-                            fontWeight: 700,
-                            color: 'white',
-                            textAlign: 'center',
-                            maxWidth: 1000,
-                            lineHeight: 1.2,
-                        }}
-                    >
-                        {experiment.name}
-                    </div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: 'white', textAlign: 'center', maxWidth: 1000, lineHeight: 1.2 }}>
+                    {card.title}
+                </div>
 
-                    {/* Effect Size */}
+                <div style={{ fontSize: 22, color: '#94a3b8' }}>{card.days}</div>
+
+                <div style={{ fontSize: 56, fontWeight: 800, color: tone, textAlign: 'center' }}>
+                    {card.verdict.headline}
+                </div>
+
+                <div style={{ fontSize: 26, color: '#cbd5e1', textAlign: 'center', maxWidth: 980, lineHeight: 1.35 }}>
+                    {card.number}
+                </div>
+
+                {hasAttestation && (
                     <div
                         style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 16,
+                            padding: '12px 24px',
+                            backgroundColor: '#166534',
+                            borderRadius: 9999,
+                            marginTop: 8,
                         }}
                     >
-                        <div
-                            style={{
-                                fontSize: effectSize === null ? 64 : 120,
-                                fontWeight: 900,
-                                color: effectSize === null ? '#aaa9a6' : isPositive ? '#5ed3b5' : '#ff8a6b',
-                            }}
-                        >
-                            {effectSize === null ? 'Not estimable' : `${effectSize > 0 ? '+' : ''}${effectSize.toFixed(2)}`}
-                        </div>
+                        <span style={{ fontSize: 20, color: 'white' }}>Content hash on Base</span>
                     </div>
+                )}
 
-                    {/* Label */}
-                    <div
-                        style={{
-                            fontSize: 24,
-                            color: '#94a3b8',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.1em',
-                        }}
-                    >
-                        Effect Size (Cohen&apos;s d)
-                    </div>
-
-                    {/* Verification badge */}
-                    {hasAttestation && (
-                        <div
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '12px 24px',
-                                backgroundColor: '#166534',
-                                borderRadius: 9999,
-                                marginTop: 16,
-                            }}
-                        >
-                            <span style={{ fontSize: 20, color: 'white' }}>
-                                Content hash on Base
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer */}
                 <div
                     style={{
                         position: 'absolute',
@@ -192,7 +175,7 @@ export async function GET(request: Request, { params }: RouteParams) {
                         fontSize: 18,
                     }}
                 >
-                    <span>Datalyst</span>
+                    <span>Datalyst · datalyst.one</span>
                 </div>
             </div>
         ),

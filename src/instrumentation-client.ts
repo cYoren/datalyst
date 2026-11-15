@@ -1,6 +1,7 @@
 // Browser errors. The DSN is public by design; when it is not set the SDK
 // stays disabled instead of failing the build.
 import * as Sentry from '@sentry/nextjs';
+import { sentryPrivacyOptions } from '@/lib/sentry-scrub';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -10,6 +11,7 @@ Sentry.init({
     environment: process.env.NODE_ENV,
     // 10% of page loads, enough to see a slow route without paying for all of them.
     tracesSampleRate: 0.1,
+    ...sentryPrivacyOptions,
 });
 
 // Navigation spans: without this export the SDK cannot instrument client-side

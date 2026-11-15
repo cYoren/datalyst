@@ -9,7 +9,7 @@ const schema = z.object({ source: z.enum(HEALTH_SOURCES), expectedUserId: z.stri
 export async function POST(request: Request) {
     const user = await getAuthenticatedUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const limit = checkAgentRateLimit(`health-connect:${user.id}`, 10);
+    const limit = await checkAgentRateLimit(`health-connect:${user.id}`, 10);
     if (!limit.allowed) return rateLimitedResponse(limit);
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: 'Invalid health connection' }, { status: 400 });

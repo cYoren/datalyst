@@ -21,6 +21,8 @@ function parseSchedule(schedule: unknown): ScheduleData {
     }
 }
 import { differenceInDays, startOfDay, subDays, format } from 'date-fns';
+import { localDayIn } from '@/lib/logical-day';
+import { isSummedVariable } from '@/lib/dailyChart';
 
 export class DashboardService {
     /**
@@ -306,4 +308,144 @@ export class DashboardService {
     private static getLogLimit(schedule: unknown): string {
         return parseSchedule(schedule).logLimit || 'daily';
     }
+}
+
+/**
+ * The data the first-week cards need (`ROADMAP.md` W4), in one read.
+ *
+ * Two trackers at most: the "main" one (most complete week, nearest to the person's first
+ * tracker) and the one that shares the most logged days with it. Everything the card says is a
+ * description of these rows — nothing here computes a correlation.
+ */
+export interface FirstWeekSource {
+    firstLoggedOn: string | null;
+    today: string;
+    main: { name: string; unit: string | null; direction: 'HIGHER_BETTER' | 'LOWER_BETTER' | 'NEUTRAL' } | null;
+    mainDays: { date: string; value: number | null }[];
+    other: { name: string; unit: string | null } | null;
+    otherDays: { date: string; value: number | null }[];
+    loggedToday: boolean;
+    answerCount: number;
+    /** The local hour of today's first check-in as `HH:MM`, for the reminder offer (W5). */
+    firstCheckInTime: string | null;
+}
+
+const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+
+/** `HH:MM` for a moment, in the account's time zone; UTC when the zone is unknown or invalid. */
+export function clockIn(timeZone: string | null, when: Date): string {
+    if (timeZone) {
+        try {
+            return new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }).format(when);
+        } catch {
+            // An unknown zone must not break the card; fall through to UTC.
+        }
+    }
+    return when.toISOString().slice(11, 16);
+}
+
+export async function getFirstWeekSource(userId: string, today = new Date()): Promise<FirstWeekSource> {
+    // The person's own calendar day. Using UTC here made day one disappear every evening west of
+    // UTC and day three arrive a day early east of it (S4 review).
+    const profileFirst = await prisma.user.findUnique({ where: { id: userId }, select: { timezone: true, createdAt: true } });
+    const timeZone = profileFirst?.timezone ?? null;
+    const todayKey = localDayIn(timeZone, today);
+    const windowStart = new Date(Date.parse(`${todayKey}T00:00:00Z`) - 6 * 86_400_000);
+
+    const [firstEntry, habits, recent, todaysFirst] = await Promise.all([
+        prisma.habitEntry.findFirst({
+            // A day the person logged themselves. An Apple Health import from last month is not
+            // day one: "Logged. Tomorrow at the same time?" would be addressed to nobody.
+            where: { userId, source: null },
+            orderBy: { logicalDate: 'asc' },
+            select: { logicalDate: true },
+        }),
+        prisma.habit.findMany({
+            where: { userId, archived: false },
+            orderBy: { rank: 'asc' },
+            select: {
+                id: true, name: true,
+                subvariables: {
+                    orderBy: { order: 'asc' },
+                    select: { id: true, name: true, unit: true, goalDirection: true },
+                },
+            },
+        }),
+        prisma.subvariableEntry.findMany({
+            where: { habitEntry: { userId, logicalDate: { gte: windowStart } } },
+            select: {
+                numericValue: true,
+                subvariable: { select: { id: true, name: true, unit: true, habitId: true, metadata: true } },
+                habitEntry: { select: { logicalDate: true, habitId: true } },
+            },
+        }),
+        prisma.habitEntry.findFirst({
+            where: { userId, logicalDate: { gte: new Date(`${todayKey}T00:00:00Z`) } },
+            orderBy: { timestamp: 'asc' },
+            select: { timestamp: true },
+        }),
+    ]);
+
+    if (!firstEntry) {
+        return {
+            firstLoggedOn: null, today: todayKey, main: null, mainDays: [], other: null, otherDays: [],
+            loggedToday: false, answerCount: 0, firstCheckInTime: null,
+        };
+    }
+
+    // One value per tracker per day: the first subvariable is the tracker's headline question.
+    const headline = new Map(habits.map((habit) => [habit.id, habit.subvariables[0] ?? null]));
+    const perTracker = new Map<string, Map<string, number>>();
+
+    for (const row of recent) {
+        const habitId = row.habitEntry.habitId;
+        if (headline.get(habitId)?.id !== row.subvariable.id) continue;
+        const days = perTracker.get(habitId) ?? new Map<string, number>();
+        const date = isoDay(row.habitEntry.logicalDate);
+        // Only a summed variable (doses, minutes) adds up. A 0–10 scale read twice in a day is
+        // 6 and 4, not 10: the card describes one day, not a total.
+        let metadata: { aggregation?: 'sum' } = {};
+        try { metadata = JSON.parse(row.subvariable.metadata || '{}'); } catch { /* legacy metadata */ }
+        const summed = isSummedVariable({ metadata });
+        const previous = days.get(date);
+        days.set(date, previous === undefined ? row.numericValue : summed ? previous + row.numericValue : previous);
+        perTracker.set(habitId, days);
+    }
+
+    const ranked = habits
+        .map((habit) => ({ habit, days: perTracker.get(habit.id) ?? new Map<string, number>() }))
+        .sort((a, b) => b.days.size - a.days.size || habits.indexOf(a.habit) - habits.indexOf(b.habit));
+
+    const mainHabit = ranked[0] ?? null;
+    const daysFor = (days: Map<string, number>) => {
+        const out: { date: string; value: number | null }[] = [];
+        for (let index = 0; index < 7; index += 1) {
+            const date = isoDay(new Date(windowStart.getTime() + index * 86_400_000));
+            out.push({ date, value: days.get(date) ?? null });
+        }
+        return out;
+    };
+
+    // The offer is the hour the person experienced, not the UTC hour behind it.
+    const loggedHour = todaysFirst ? clockIn(timeZone, todaysFirst.timestamp) : null;
+    const otherHabit = ranked.find((candidate) => candidate.habit.id !== mainHabit?.habit.id && candidate.days.size > 0);
+    const todayAnswers = mainHabit?.days.has(todayKey) ? 1 : 0;
+
+    return {
+        firstLoggedOn: isoDay(firstEntry.logicalDate),
+        today: todayKey,
+        main: mainHabit
+            ? {
+                  name: mainHabit.habit.subvariables[0]?.name ?? mainHabit.habit.name,
+                  unit: mainHabit.habit.subvariables[0]?.unit ?? null,
+                  direction: mainHabit.habit.subvariables[0]?.goalDirection ?? 'NEUTRAL',
+              }
+            : null,
+        mainDays: mainHabit ? daysFor(mainHabit.days) : [],
+        other: otherHabit ? { name: otherHabit.habit.subvariables[0]?.name ?? otherHabit.habit.name, unit: otherHabit.habit.subvariables[0]?.unit ?? null } : null,
+        otherDays: otherHabit ? daysFor(otherHabit.days) : [],
+        loggedToday: todayAnswers > 0,
+        answerCount: todayAnswers,
+        firstCheckInTime: loggedHour,
+    };
 }

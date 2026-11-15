@@ -6,11 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const migrationPaths = [
-  '20261006000000_api_key_hashes', '20261006120000_health_import',
-  '20261007120000_add_studies', '20261007150000_ai_insights',
-  '20261007153000_experiment_attestations', '20261008000000_ai_usage_fk_on_update',
+  '20261006000000_api_key_hashes', '20261006120000_health_import', '20261007120000_add_studies',
+  '20261007150000_ai_insights', '20261007153000_experiment_attestations', '20261008000000_ai_usage_fk_on_update',
+  '20261114120000_connected_apps', '20261114130000_api_key_usage', '20261114140000_habit_template_origin',
+  '20261114150000_connect_codes', '20261114160000_rate_limit_subject', '20261114170000_user_plan',
+  '20261114180000_app_tracker_key', '20261114190000_subvariable_entry_source',
+  '20261114200000_revoke_browser_roles',
 ].map(name => `prisma/migrations/${name}/migration.sql`);
-export const serverOnly = ['ApiKey', 'Assignment', 'Protocol', 'HealthImportConnection', 'Study', 'StudyMember', 'StudyParticipant', 'StudyConsent', 'AiDailyUsage', 'InsightsCache', 'ExperimentAttestation'];
+export const serverOnly = ['ApiKey', 'ApiKeyEvent', 'ApiKeyUsage', 'ConnectCode', 'Assignment', 'Protocol', 'HealthImportConnection', 'Study', 'StudyMember', 'StudyParticipant', 'StudyConsent', 'AiDailyUsage', 'InsightsCache', 'ExperimentAttestation'];
 const hash = value => createHash('sha256').update(value).digest('hex');
 const quote = value => `'${value.replaceAll("'", "''")}'`;
 

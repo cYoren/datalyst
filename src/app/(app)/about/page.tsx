@@ -95,11 +95,11 @@ export default function AboutPage() {
                 </h3>
                 <p className="text-[var(--text-secondary)] text-sm mb-4">
                     When we show &quot;Caffeine correlates with poor sleep,&quot; it means the pattern exists in your data.
-                    But it doesn&apos;t prove caffeine <em>caused</em> the bad sleep. Maybe you drink coffee on stressful days, and stress causes both.
+                    It does not mean caffeine <em>caused</em> the bad sleep. Maybe you drink coffee on stressful days, and stress causes both.
                 </p>
                 <p className="text-[var(--text-secondary)] text-sm">
-                    <strong>To prove causation</strong>, use the Lab to run a controlled experiment: randomize your caffeine intake
-                    and see if the effect persists. That&apos;s real science.
+                    <strong>To get a stronger answer</strong>, use the Lab to run a controlled experiment: randomize your caffeine intake
+                    and see if the difference holds up. That rules out some of the other explanations, for you, on those days.
                 </p>
             </Card>
 
@@ -128,7 +128,7 @@ export default function AboutPage() {
                     </li>
                     <li className="flex gap-3">
                         <span className="font-bold text-[var(--color-accent)]">5.</span>
-                        <span><strong>Know what works</strong>: Prove causation with your own data, not generic advice</span>
+                        <span><strong>Know what works</strong>: run the experiment on your own data, not on generic advice</span>
                     </li>
                 </ol>
             </Card>

@@ -1,60 +1,79 @@
 /**
- * Proper p-value calculation using the regularized incomplete beta function.
- * Replaces the incorrect `1 / (1 + absT)` linear approximation.
+ * Two-tailed p-values from a t statistic, and the incomplete beta function they need.
+ *
+ * This is a straight Numerical Recipes `betacf` (Lentz's algorithm) and it is checked against
+ * published t-table values in `pvalue.test.ts`. The previous version got the Lentz recurrence
+ * wrong — it fed `h` where `c` belongs — and returned 0 for t = 1, df = 10 (the true value is
+ * 0.341) and 1 for t = 2.228, df = 10 (0.050). Every correlation and every N-of-1 result in the
+ * app read that number, so the direction of the error mattered: it reported "significant" for
+ * genuinely null differences and "not significant" for large ones.
  */
+
+const EPS = 3e-14;
+const FPMIN = 1e-300;
+const MAX_ITERATIONS = 300;
 
 /**
- * Regularized incomplete beta function I_x(a, b) using continued fraction.
- * Used to compute the CDF of the t-distribution.
+ * Continued fraction for the incomplete beta function (Numerical Recipes, `betacf`).
+ * Must be called with 0 <= x <= 1, a > 0, b > 0.
  */
-function betaIncomplete(x: number, a: number, b: number): number {
-    if (x <= 0) return 0;
-    if (x >= 1) return 1;
+function betaContinuedFraction(a: number, b: number, x: number): number {
+    const qab = a + b;
+    const qap = a + 1;
+    const qam = a - 1;
 
-    // Use symmetry relation when x > (a+1)/(a+b+2)
-    if (x > (a + 1) / (a + b + 2)) {
-        return 1 - betaIncomplete(1 - x, b, a);
-    }
-
-    const lnBeta = lnGamma(a) + lnGamma(b) - lnGamma(a + b);
-    const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta) / a;
-
-    // Lentz's continued fraction
-    let d = 1 - (a + b) * x / (a + 1);
-    if (Math.abs(d) < 1e-30) d = 1e-30;
+    let c = 1;
+    let d = 1 - (qab * x) / qap;
+    if (Math.abs(d) < FPMIN) d = FPMIN;
     d = 1 / d;
     let h = d;
 
-    for (let m = 1; m <= 200; m++) {
+    for (let m = 1; m <= MAX_ITERATIONS; m++) {
+        const m2 = 2 * m;
+
         // Even step
-        let numerator = m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m));
-        d = 1 + numerator * d;
-        if (Math.abs(d) < 1e-30) d = 1e-30;
+        let aa = (m * (b - m) * x) / ((qam + m2) * (a + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < FPMIN) d = FPMIN;
+        c = 1 + aa / c;
+        if (Math.abs(c) < FPMIN) c = FPMIN;
         d = 1 / d;
-        let c = 1 + numerator / (Math.abs(h) < 1e-30 ? 1e-30 : h);
-        if (Math.abs(c) < 1e-30) c = 1e-30;
         h *= d * c;
 
         // Odd step
-        numerator = -((a + m) * (a + b + m) * x) / ((a + 2 * m) * (a + 2 * m + 1));
-        d = 1 + numerator * d;
-        if (Math.abs(d) < 1e-30) d = 1e-30;
+        aa = -((a + m) * (qab + m) * x) / ((a + m2) * (qap + m2));
+        d = 1 + aa * d;
+        if (Math.abs(d) < FPMIN) d = FPMIN;
+        c = 1 + aa / c;
+        if (Math.abs(c) < FPMIN) c = FPMIN;
         d = 1 / d;
-        c = 1 + numerator / (Math.abs(h) < 1e-30 ? 1e-30 : h);
-        if (Math.abs(c) < 1e-30) c = 1e-30;
         const delta = d * c;
         h *= delta;
 
-        if (Math.abs(delta - 1) < 1e-10) break;
+        if (Math.abs(delta - 1) < EPS) break;
     }
 
-    return front * h;
+    return h;
 }
 
-/**
- * Log-gamma function using Lanczos approximation.
- */
-function lnGamma(z: number): number {
+/** Regularized incomplete beta function I_x(a, b). */
+export function incompleteBeta(x: number, a: number, b: number): number {
+    if (!(x > 0)) return 0;
+    if (x >= 1) return 1;
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return 0;
+
+    const lnBeta = lnGamma(a + b) - lnGamma(a) - lnGamma(b);
+    const front = Math.exp(lnBeta + a * Math.log(x) + b * Math.log(1 - x));
+
+    // The continued fraction converges fast only on one side of this boundary.
+    if (x < (a + 1) / (a + b + 2)) {
+        return (front * betaContinuedFraction(a, b, x)) / a;
+    }
+    return 1 - (front * betaContinuedFraction(b, a, 1 - x)) / b;
+}
+
+/** Log-gamma, Lanczos approximation (g = 7). */
+export function lnGamma(z: number): number {
     const g = 7;
     const coef = [
         0.99999999999980993,
@@ -74,20 +93,21 @@ function lnGamma(z: number): number {
 
     z -= 1;
     let x = coef[0];
-    for (let i = 1; i < g + 2; i++) {
-        x += coef[i] / (z + i);
-    }
+    for (let i = 1; i < g + 2; i++) x += coef[i] / (z + i);
     const t = z + g + 0.5;
     return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
 }
 
 /**
- * Two-tailed p-value from a t-statistic and degrees of freedom.
- * Uses the regularized incomplete beta function for accuracy.
+ * Two-tailed p-value for a t statistic with `df` degrees of freedom.
+ *
+ * `P(|T| > |t|) = I_{df/(df+t^2)}(df/2, 1/2)`, which is exact rather than an approximation.
  */
 export function tTestPValue(t: number, df: number): number {
-    if (df <= 0) return 1.0;
+    if (!Number.isFinite(t) || !Number.isFinite(df) || df <= 0) return 1;
+    if (t === 0) return 1;
     const x = df / (df + t * t);
-    const p = betaIncomplete(x, df / 2, 0.5);
+    const p = incompleteBeta(x, df / 2, 0.5);
+    if (!Number.isFinite(p)) return 1;
     return Math.min(1, Math.max(0, p));
 }

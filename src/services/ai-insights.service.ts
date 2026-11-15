@@ -23,7 +23,7 @@ export async function generateAiInsights(userId: string) {
   // Coarse pre-check before the correlation query and the 5000-row history read: the precise
   // charge below sits after them, because a cache hit must cost nothing, and a hot loop must
   // not be able to hammer the database on the way there.
-  if (!checkAiRateLimit(userId, 'insights:request', AI_RUNS_PER_MINUTE * 2).allowed) {
+  if (!(await checkAiRateLimit(userId, 'insights:request', AI_RUNS_PER_MINUTE * 2)).allowed) {
     throw new InsightAvailabilityError('rate_limited', 429);
   }
   const config = aiConfiguration();
@@ -66,7 +66,7 @@ export async function generateAiInsights(userId: string) {
   await reserveAiBudget(userId, config, request);
   // Charged where the money is spent, after the reservation so a user already over budget
   // does not also burn minute quota. A cached answer returns above and is never charged.
-  if (!checkAiRateLimit(userId, 'insights').allowed) throw new InsightAvailabilityError('rate_limited', 429);
+  if (!(await checkAiRateLimit(userId, 'insights')).allowed) throw new InsightAvailabilityError('rate_limited', 429);
   const policy = new AiExecutionPolicy({
     provider: config.createProvider(), allowlist: { [config.modelId]: config.spec },
     defaultTimeoutMs: 20000, retryOptions: { maxRetries: 0 },

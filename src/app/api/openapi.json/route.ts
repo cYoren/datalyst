@@ -29,6 +29,7 @@ const openApiSpec = {
         { name: 'Trials' },
         { name: 'Results' },
         { name: 'MCP' },
+        { name: 'Connected apps' },
     ],
     paths: {
         '/api/mcp': {
@@ -345,6 +346,108 @@ const openApiSpec = {
                             },
                         },
                     },
+                },
+            },
+        },
+        '/api/v1/app/me': {
+            get: {
+                operationId: 'appMe',
+                summary: "The app's own trackers and variables, and what it may read",
+                description: 'Connected-app API. The key must carry an appId and the app:read scope; an account-wide key is refused. No profile fields are returned.',
+                tags: ['Connected apps'],
+                security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
+                responses: {
+                    '200': { description: "The app's trackers, its declared variable keys, and the variables the person ticked for it" },
+                    '401': { description: 'Missing, revoked, or not an app key' },
+                    '403': { description: 'Missing the app:read scope, or the app is no longer registered' },
+                    '429': { description: 'Rate limit exceeded (counted per key, durably)' },
+                },
+            },
+        },
+        '/api/v1/app/values': {
+            get: {
+                operationId: 'appReadValues',
+                summary: 'Daily values for the variables the person allowed, at most 92 days',
+                description: 'A missing day is absent, not zero. Each value carries its date, variableId, value and source (manual, apple_health, health_connect, or app:<id>).',
+                tags: ['Connected apps'],
+                security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
+                parameters: [
+                    { name: 'from', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
+                    { name: 'to', in: 'query', required: true, schema: { type: 'string', format: 'date' } },
+                ],
+                responses: {
+                    '200': { description: 'The values in the range', content: { 'application/json': { schema: { type: 'object', properties: { values: { type: 'array', items: { type: 'object' } } } } } } },
+                    '400': { description: 'invalid_range or range_too_long' },
+                    '401': { description: 'Missing, revoked, or not an app key' },
+                    '429': { description: 'Rate limit exceeded' },
+                },
+            },
+            put: {
+                operationId: 'appWriteValues',
+                summary: "Upsert one value per variable per day on the app's own trackers",
+                description: 'The day is always sent by the app. Idempotent: the same body twice changes nothing. Refused with 409 when the person edited that day by hand. Dates older than 30 days or in the future are refused.',
+                tags: ['Connected apps'],
+                security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    values: {
+                                        type: 'array',
+                                        maxItems: 50,
+                                        items: {
+                                            type: 'object',
+                                            required: ['date', 'variableKey', 'value'],
+                                            properties: {
+                                                date: { type: 'string', format: 'date' },
+                                                variableKey: { type: 'string' },
+                                                value: { type: 'number' },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'What was written' },
+                    '400': { description: 'invalid_body, invalid_value or date_out_of_range' },
+                    '401': { description: 'Missing, revoked, or not an app key' },
+                    '403': { description: 'Missing app:write, or the tracker is not the app\'s own' },
+                    '404': { description: 'unknown_variable' },
+                    '409': { description: 'write_refused: the person edited that day by hand' },
+                    '429': { description: 'Rate limit exceeded' },
+                },
+            },
+            delete: {
+                operationId: 'appDeleteValue',
+                summary: 'Remove a value the app wrote',
+                description: 'It cannot remove a value the person edited by hand (409).',
+                tags: ['Connected apps'],
+                security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                required: ['date', 'variableKey'],
+                                properties: { date: { type: 'string', format: 'date' }, variableKey: { type: 'string' } },
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': { description: 'Removed' },
+                    '400': { description: 'invalid_body' },
+                    '401': { description: 'Missing, revoked, or not an app key' },
+                    '404': { description: 'unknown_variable or not_found' },
+                    '409': { description: 'not_app_value: the person edited that day by hand' },
+                    '429': { description: 'Rate limit exceeded' },
                 },
             },
         },

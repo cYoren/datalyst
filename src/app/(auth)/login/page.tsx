@@ -3,8 +3,9 @@
 import Image from 'next/image';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { safeNext } from '@/lib/safe-next';
 import { clearPersistedCache } from '@/providers/SWRProvider';
 import { getErrorMessage, getErrorStatus } from '@/lib/error-utils';
 import { Button } from '@/components/ui/Button';
@@ -19,8 +20,19 @@ import {
     startOAuth,
 } from '@/lib/native-auth';
 
+/** `useSearchParams` needs a boundary so the page can still be prerendered. */
 export default function LoginPage() {
+    return (
+        <React.Suspense fallback={null}>
+            <LoginForm />
+        </React.Suspense>
+    );
+}
+
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const next = safeNext(searchParams.get('next'));
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -53,7 +65,7 @@ export default function LoginPage() {
             // renders anything from it.
             clearPersistedCache();
 
-            router.push('/dashboard');
+            router.push(next);
             router.refresh();
         } catch (err: unknown) {
             // Provide more specific error messages
@@ -83,7 +95,7 @@ export default function LoginPage() {
             const { error } = await supabase.auth.signInWithOtp({
                 email,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                    emailRedirectTo: `${window.location.origin}/auth/callback${next === '/dashboard' ? '' : `?next=${encodeURIComponent(next)}`}`,
                 },
             });
 

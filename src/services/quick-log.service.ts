@@ -56,7 +56,7 @@ export async function parseQuickLog(userId: string, text: string) {
     await reserveAiBudget(userId, config, request);
     // Charged after the budget reservation, so a user who is already over budget does not
     // also burn minute quota on a call that cannot proceed.
-    if (!checkAiRateLimit(userId, 'quick_log').allowed) throw new InsightAvailabilityError('rate_limited', 429);
+    if (!(await checkAiRateLimit(userId, 'quick_log')).allowed) throw new InsightAvailabilityError('rate_limited', 429);
     const policy = new AiExecutionPolicy({
         provider: config.createProvider(), allowlist: { [config.modelId]: config.spec },
         defaultTimeoutMs: 15000, retryOptions: { maxRetries: 0 },

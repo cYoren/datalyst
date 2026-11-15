@@ -9,9 +9,10 @@
 
 import { z } from 'zod';
 import { parseISO, differenceInCalendarDays, format } from 'date-fns';
-import { authenticateAgent, hasScope, type ApiKeyScope, type AuthenticatedAgent } from '@/lib/agent-auth';
+import { authenticateAccountAgent, hasScope, type ApiKeyScope, type AuthenticatedAgent } from '@/lib/agent-auth';
 import { checkAgentRateLimit } from '@/lib/agent-rate-limit';
 import { ServiceError } from '@/lib/error-utils';
+import { logApiKeyEvent } from '@/lib/app-api';
 import { experimentFormSchema, quickEntrySchema } from '@/lib/validations';
 import { HabitService } from '@/services/habit.service';
 import { TRACKER_ICONS } from '@/components/ui/TrackerIcon';
@@ -300,6 +301,14 @@ const toolText = (value: unknown, isError = false) => ({
     ...(isError && { isError: true }),
 });
 
+/** The action names Settings knows how to say out loud (`src/components/settings/ApiKeysCard.tsx`). */
+const MCP_ACTION: Record<string, string> = {
+    log_checkin: 'write',
+    create_experiment: 'start-trial',
+    create_study: 'write',
+    join_study: 'write',
+};
+
 async function callTool(agent: AuthenticatedAgent, params: Record<string, unknown>) {
     const t = toolsByName.get(String(params.name));
     if (!t) return { error: `Unknown tool: ${String(params.name)}` };
@@ -315,6 +324,19 @@ async function callTool(agent: AuthenticatedAgent, params: Record<string, unknow
         const result = toolText(await t.run(agent.userId, parsed.data as never));
         if (Buffer.byteLength(JSON.stringify(result), 'utf8') > MAX_EXPORT_BYTES) {
             throw new ToolError('Evidence packet exceeds the MCP response limit. Download the export in Lab.');
+        }
+        // A write from an assistant is an action the person should be able to see
+        // (`ROADMAP.md` S3). Reads are recorded too, so an empty list means "nothing happened"
+        // rather than "we did not look".
+        if (t.scope !== 'read') {
+            const args = parsed.data as { habitId?: unknown; logicalDate?: unknown };
+            await logApiKeyEvent({
+                apiKeyId: agent.apiKeyId,
+                appId: null,
+                action: MCP_ACTION[t.name] ?? t.name,
+                habitId: typeof args.habitId === 'string' ? args.habitId : null,
+                logicalDate: typeof args.logicalDate === 'string' ? new Date(`${args.logicalDate}T00:00:00Z`) : null,
+            });
         }
         return { result };
     } catch (error) {
@@ -370,7 +392,7 @@ const json = (body: unknown, status = 200, headers: Record<string, string> = {})
 
 /** POST /api/mcp */
 export async function handleMcpPost(request: Request): Promise<Response> {
-    const agent = await authenticateAgent(request);
+    const agent = await authenticateAccountAgent(request);
     if (!agent) {
         return json(rpcError(null, -32001, 'Invalid or missing API key. Send it as "Authorization: Bearer <key>".'), 401, {
             'WWW-Authenticate': 'Bearer realm="datalyst"',
@@ -394,7 +416,7 @@ export async function handleMcpPost(request: Request): Promise<Response> {
         }
     }
 
-    const rate = checkAgentRateLimit(`mcp:${agent.apiKeyId}`, agent.rateLimitPerMinute);
+    const rate = await checkAgentRateLimit(`mcp:${agent.apiKeyId}`, agent.rateLimitPerMinute);
     if (!rate.allowed) {
         return json(rpcError(null, -32002, 'Rate limit exceeded'), 429, { 'Retry-After': String(rate.resetSeconds) });
     }

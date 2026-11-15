@@ -104,8 +104,8 @@ export default function ActiveTrialWidget() {
                                 : experiment.isBlind
                                     ? "Keep your blinding integrity – avoid checking the reveal."
                                     : isObservational
-                                        ? `Log your intake for the ${experiment.independent.name} protocol.`
-                                        : `Follow the "${interventionLabel}" protocol today.`
+                                        ? `Log your intake of ${experiment.independent.name} today.`
+                                        : `Follow "${interventionLabel}" today.`
                             }
                         </p>
                     </div>

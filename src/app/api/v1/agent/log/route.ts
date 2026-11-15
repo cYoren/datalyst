@@ -7,9 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { authenticateAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
+import { authenticateAccountAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
 import { z } from 'zod';
 import { appendRateLimitHeaders, checkAgentRateLimit, rateLimitedResponse } from '@/lib/agent-rate-limit';
+import { logApiKeyEvent } from '@/lib/app-api';
 
 const LogEntrySchema = z.object({
     trialId: z.string().min(1, 'trialId is required'),
@@ -23,12 +24,12 @@ const LogEntrySchema = z.object({
 
 export async function POST(request: NextRequest) {
     // Authenticate the agent
-    const agent = await authenticateAgent(request);
+    const agent = await authenticateAccountAgent(request);
     if (!agent) {
         return unauthorizedResponse();
     }
     const logLimit = Math.min(agent.rateLimitPerMinute, 30);
-    const rateLimit = checkAgentRateLimit(`agent:${agent.apiKeyId}:log`, logLimit);
+    const rateLimit = await checkAgentRateLimit(`agent:${agent.apiKeyId}:log`, logLimit);
     if (!rateLimit.allowed) {
         return rateLimitedResponse(rateLimit);
     }
@@ -168,6 +169,17 @@ export async function POST(request: NextRequest) {
             }
 
             results.push({ habitId, entryId: habitEntry.id });
+        }
+
+        // What the key did, so the person can see it in Settings (`ROADMAP.md` S3).
+        for (const result of results) {
+            await logApiKeyEvent({
+                apiKeyId: agent.apiKeyId,
+                appId: null,
+                action: 'write',
+                habitId: result.habitId,
+                logicalDate,
+            });
         }
 
         return withRateLimit(NextResponse.json({

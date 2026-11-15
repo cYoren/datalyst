@@ -9,7 +9,9 @@ import { Button, buttonVariants } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { FlaskConical, Plus, Calendar, TrendingUp, Loader2 } from 'lucide-react';
 import CorrelationMatrix from '@/components/lab/CorrelationMatrix';
+import { useRouter } from 'next/navigation';
 import { fetcher } from '@/lib/hooks';
+import { connectedAppName } from '@/lib/connected-apps';
 
 interface Experiment {
     id: string;
@@ -43,6 +45,15 @@ export default function LabPage() {
         keepPreviousData: true,
         dedupingInterval: 120000,
     });
+    // Trackers a connected app measures, so a measured outcome can be the other side of a test
+    // (`docs/CONNECTED-APPS.md`, "Lab").
+    const { data: habits } = useSWR<{ id: string; name: string; createdByAppId?: string | null; icon: string }[]>('/api/habits', fetcher);
+    const habitList = Array.isArray(habits) ? habits : [];
+    const measuredTracker = habitList.find((habit) => habit.createdByAppId);
+    const measuredApp = connectedAppName(measuredTracker?.createdByAppId);
+    // A measured outcome only works as one side of an experiment when the person already has
+    // the other side: the form takes tracker ids, and a name would open an empty select.
+    const caffeineTracker = habitList.find((habit) => /caffeine|coffee/i.test(habit.name));
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
     const experimentsList = Array.isArray(experiments) ? experiments : [];
@@ -62,7 +73,7 @@ export default function LabPage() {
                     <div>
                         <h1 className="text-3xl sm:text-[2.6rem] leading-[1.05] font-semibold text-[var(--text-primary)]">The Lab</h1>
                         <p className="text-sm text-[var(--text-secondary)]">
-                            Test correlations between your protocols
+                            Test correlations between your trackers
                         </p>
                     </div>
                 </div>
@@ -72,14 +83,9 @@ export default function LabPage() {
                 </Link>
             </div>
 
-            {/* Explainer Banner */}
-            <Link href="/lab/studies" className="block bg-[var(--color-bg-card)] p-4 rounded-[var(--radius-card)]">
-                <span className="font-medium text-[var(--text-primary)]">Researcher studies →</span>
-                <span className="block mt-1 text-sm text-[var(--text-secondary)]">Run AI-assisted protocols with consent, participant schedules and pseudonymous evidence exports.</span>
-            </Link>
             <Card className="p-4 bg-[var(--color-bg-subtle)] ">
                 <p className="text-sm text-[var(--text-secondary)]">
-                    The Lab lets you test specific interventions with randomized experiments. Your Dashboard shows automatic correlations from your data. The Lab goes further by controlling variables to prove causation.
+                    The Lab lets you test specific interventions with randomized experiments. Your Dashboard shows automatic correlations from your data. The Lab goes further: it alternates the change and the baseline, so a difference you see is much less likely to be a coincidence.
                 </p>
             </Card>
 
@@ -168,6 +174,11 @@ export default function LabPage() {
                                     <p className="text-sm text-[var(--text-secondary)] mt-3">
                                         Does coffee actually help you focus? Find out with a randomized test.
                                     </p>
+                                    {measuredTracker && caffeineTracker && (
+                                        <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                                            Measure it instead of rating it: {measuredApp} writes the outcome.
+                                        </p>
+                                    )}
                                 </Link>
                             </Card>
 
@@ -187,6 +198,27 @@ export default function LabPage() {
                                     </p>
                                 </Link>
                             </Card>
+
+                            {measuredTracker && caffeineTracker && (
+                                <Card className="p-4 paper-lift hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent)]/10 transition-colors cursor-pointer group">
+                                    <Link href={`/lab/new?independent=${encodeURIComponent(caffeineTracker.id)}&dependent=${encodeURIComponent(measuredTracker.id)}`} className="block">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="h-10 w-10 flex items-center justify-center bg-[var(--color-accent)]/15 rounded-[var(--radius-button)]">
+                                                <TrackerIcon value={measuredTracker.icon || 'brain'} className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold font-display text-[var(--text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
+                                                    Caffeine → {measuredTracker.name.replace(/\s*\(.*\)$/, '')} (measured)
+                                                </div>
+                                                <div className="text-[11px] font-medium text-[var(--text-tertiary)]">14 days</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[var(--text-secondary)] mt-3">
+                                            {measuredApp} measures the outcome, so nothing is self-rated. Change the caffeine, read the result.
+                                        </p>
+                                    </Link>
+                                </Card>
+                            )}
 
                             <Card className="p-4 paper-lift hover:border-[var(--color-teal)]/40 hover:bg-[var(--color-teal)]/20 transition-colors cursor-pointer group">
                                 <Link href="/lab/new?template=exercise" className="block">
@@ -215,6 +247,18 @@ export default function LabPage() {
                 </div>
             )}
 
+            {/* Researcher studies: kept, and at the bottom, because this is not what a
+                person tracking a symptom came here for (ROADMAP.md T5). */}
+            <Link
+                href="/lab/studies"
+                className="block rounded-[var(--radius-card)] border border-dashed border-[var(--color-border)] p-4 text-sm transition-colors hover:border-[var(--color-border-hover)]"
+            >
+                <span className="font-medium text-[var(--text-secondary)]">Researcher studies</span>
+                <span className="block mt-1 text-[var(--text-tertiary)]">
+                    Running a study with participants? Consent, schedules and pseudonymous exports live here.
+                </span>
+            </Link>
+
             {/* Correlation Matrix */}
             <Card className="p-6 paper-lift shadow-[var(--shadow-card)]">
                 <h2 className="text-lg font-semibold font-display text-[var(--text-primary)] mb-1">
@@ -232,13 +276,14 @@ export default function LabPage() {
 }
 
 function ExperimentCard({ experiment }: { experiment: Experiment }) {
+    const router = useRouter();
     const daysLeft = Math.ceil(
         (new Date(experiment.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
     const isEnded = daysLeft < 0;
 
     return (
-        <Card className="p-5 paper-lift transition-all cursor-pointer group" onClick={() => window.location.href = `/lab/${experiment.id}`}>
+        <Card className="p-5 paper-lift transition-all cursor-pointer group" onClick={() => router.push(`/lab/${experiment.id}`)}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     {/* Status Badge */}

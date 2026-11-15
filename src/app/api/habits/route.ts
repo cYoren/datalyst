@@ -7,6 +7,9 @@ import { z } from 'zod';
 const createHabitBodySchema = createHabitSchema.extend({
     subvariables: z.array(createSubvariableSchema.omit({ habitId: true })).optional(),
     templateId: z.string().optional(),
+    // The HABIT_TEMPLATES id this tracker came from, so the app can offer the questions left out
+    // on day one even if the person renames the tracker.
+    templateOrigin: z.string().max(100).optional(),
 });
 
 export async function GET() {

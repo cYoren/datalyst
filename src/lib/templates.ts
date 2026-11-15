@@ -493,3 +493,135 @@ export function getTemplateById(id: string) {
     return HABIT_TEMPLATES.find(t => t.id === id);
 }
 
+
+// ── The first day ─────────────────────────────────────────────────
+
+/**
+ * How many questions a new person answers on day one (`ROADMAP.md` W1).
+ *
+ * The Gut Triggers pack used to open with four trackers and ten questions, on
+ * the day a person is least willing to give effort. The start set is the
+ * symptom plus one question from each of its triggers: enough to have something
+ * to compare, not enough to feel like homework. The rest of each tracker is
+ * offered after the third day of check-ins.
+ */
+export const MAX_START_QUESTIONS = 5;
+
+export interface StartQuestion {
+    templateId: string;
+    /** The one question kept from this tracker on day one. */
+    subvariable: string;
+}
+
+/** The symptom, then the first question of each trigger, up to five. */
+export function startQuestionsForBundle(bundle: ProtocolBundle): StartQuestion[] {
+    const questions: StartQuestion[] = [];
+    for (const templateId of bundle.protocolIds) {
+        if (questions.length >= MAX_START_QUESTIONS) break;
+        const template = getTemplateById(templateId);
+        const first = template?.subvariables?.[0];
+        if (!first) continue;
+        questions.push({ templateId, subvariable: first.name });
+    }
+    return questions;
+}
+
+/** How many trackers one person's day one may hold, whatever they selected. */
+export const MAX_START_TRACKERS = MAX_START_QUESTIONS;
+
+export interface StartTracker {
+    templateId: string;
+    bundle: ProtocolBundle;
+}
+
+/**
+ * The trackers one person's day one creates, across every pack they selected.
+ *
+ * The cap is per person, not per pack: selecting three packs used to mean 13–14 trackers and
+ * as many questions on the first check-in, which is the opposite of W1. One question each, and
+ * at most `MAX_START_TRACKERS` of them.
+ */
+export function startTrackersForBundles(bundles: ProtocolBundle[]): StartTracker[] {
+    const seen = new Set<string>();
+    const trackers: StartTracker[] = [];
+    for (const bundle of bundles) {
+        for (const templateId of bundle.protocolIds) {
+            if (trackers.length >= MAX_START_TRACKERS) return trackers;
+            if (seen.has(templateId)) continue;
+            if (!getTemplateById(templateId)) continue;
+            seen.add(templateId);
+            trackers.push({ templateId, bundle });
+        }
+    }
+    return trackers;
+}
+
+/** How many trackers the selected packs would create on day one. */
+export function startTrackerCount(bundles: ProtocolBundle[]): number {
+    return startTrackersForBundles(bundles).length;
+}
+
+/** The subvariables of `template` that belong on day one. */
+export function startSubvariablesFor(templateId: string, bundle: ProtocolBundle) {
+    const names = new Set(
+        startQuestionsForBundle(bundle)
+            .filter((question) => question.templateId === templateId)
+            .map((question) => question.subvariable)
+    );
+    const template = getTemplateById(templateId);
+    return (template?.subvariables ?? []).filter((sub) => names.has(sub.name));
+}
+
+export interface MoreQuestions {
+    habitId: string;
+    habitName: string;
+    missing: string[];
+}
+
+/** A tracker, as far as the template it came from is concerned. */
+export interface TrackedHabit {
+    id: string;
+    name: string;
+    templateOrigin?: string | null;
+    subvariables?: { name: string }[];
+}
+
+/**
+ * The template a tracker came from, or nothing.
+ *
+ * `templateOrigin` is the identity and is written at creation. The name is only a fallback for
+ * trackers created before that column existed, and even then it must share a question with the
+ * template — otherwise the health import's own "Sleep" tracker would be told it skipped
+ * questions it never had.
+ */
+export function templateForHabit(habit: TrackedHabit) {
+    if (habit.templateOrigin) {
+        const byOrigin = HABIT_TEMPLATES.find((template) => template.id === habit.templateOrigin);
+        if (byOrigin) return byOrigin;
+    }
+    const have = new Set((habit.subvariables ?? []).map((sub) => sub.name));
+    return HABIT_TEMPLATES.find(
+        (template) => template.name === habit.name && template.subvariables.some((sub) => have.has(sub.name)),
+    );
+}
+
+/**
+ * Questions a tracker could still ask, from the template it started as.
+ *
+ * After the third day of check-ins the dashboard offers these, one tracker at a
+ * time. Derived from what the person has, so it needs no record of which pack
+ * they picked.
+ */
+export function moreQuestionsFor(habits: TrackedHabit[]): MoreQuestions[] {
+    const results: MoreQuestions[] = [];
+    for (const habit of habits) {
+        const template = templateForHabit(habit);
+        if (!template) continue;
+        const have = new Set((habit.subvariables ?? []).map((sub) => sub.name));
+        const missing = template.subvariables
+            .map((sub) => sub.name)
+            .filter((name) => !have.has(name));
+        if (missing.length > 0) results.push({ habitId: habit.id, habitName: habit.name, missing });
+    }
+    return results;
+}

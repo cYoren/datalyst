@@ -6,6 +6,14 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { useOrigin } from '@/lib/useOrigin';
 
+type KeyEvent = {
+    id: string;
+    action: string;
+    createdAt: string;
+    logicalDate: string | null;
+    habitName: string | null;
+};
+
 type ApiKey = {
     id: string;
     name: string;
@@ -13,7 +21,36 @@ type ApiKey = {
     scopes: string[];
     createdAt: string;
     lastUsedAt: string | null;
+    appId?: string | null;
+    /** The last few things the key did (`ROADMAP.md` S3). Actions only — never a value. */
+    events?: KeyEvent[];
 };
+
+const ACTION_LABELS: Record<string, string> = {
+    read: 'read your data',
+    write: 'logged a check-in',
+    delete: 'removed a value',
+    connect: 'connected',
+    disconnect: 'disconnected',
+    'start-trial': 'started an experiment',
+};
+
+/**
+ * The day is a calendar date, stored at UTC midnight. `toLocaleDateString()` on that timestamp
+ * renders the day before anywhere west of UTC, so the string is formatted as a date, not a moment.
+ */
+function formatDay(iso: string) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+}
+
+function eventLine(event: KeyEvent) {
+    const action = ACTION_LABELS[event.action] ?? event.action;
+    const what = event.habitName ? ` (${event.habitName})` : '';
+    const day = event.logicalDate ? ` on ${formatDay(event.logicalDate)}` : '';
+    return `${action}${what}${day}`;
+}
 
 
 function formatDate(value: string | null) {
@@ -167,6 +204,15 @@ export function ApiKeysCard() {
                                 <p className="text-xs text-[var(--text-tertiary)]">
                                     <code>{key.prefix ?? 'legacy'}…</code> · {scopeLabels(key.scopes)} · created {formatDate(key.createdAt)} · last used {formatDate(key.lastUsedAt)}
                                 </p>
+                                {key.events && key.events.length > 0 && (
+                                    <ul className="mt-1 space-y-0.5 text-xs text-[var(--text-tertiary)]" aria-label={`Recent activity for ${key.name}`}>
+                                        {key.events.map((event) => (
+                                            <li key={event.id}>
+                                                {new Date(event.createdAt).toLocaleString()} — {eventLine(event)}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleRevoke(key)}>Revoke</Button>
                         </li>

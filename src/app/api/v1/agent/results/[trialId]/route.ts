@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { authenticateAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
+import { authenticateAccountAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
 import { calculateRigorScore } from '@/stats/rigor';
 import { getAttestationExplorerUrl } from '@/lib/crypto/eas';
 import { appendRateLimitHeaders, checkAgentRateLimit, rateLimitedResponse } from '@/lib/agent-rate-limit';
 import { getExperimentResults } from '@/services/experiment.service';
 import { ServiceError } from '@/lib/error-utils';
+import { logApiKeyEvent } from '@/lib/app-api';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ trialId: string }> }) {
-    const agent = await authenticateAgent(request);
+    const agent = await authenticateAccountAgent(request);
     if (!agent) return unauthorizedResponse();
-    const limit = checkAgentRateLimit(`agent:${agent.apiKeyId}:results`, agent.rateLimitPerMinute);
+    const limit = await checkAgentRateLimit(`agent:${agent.apiKeyId}:results`, agent.rateLimitPerMinute);
     if (!limit.allowed) return rateLimitedResponse(limit);
     if (!hasScope(agent, 'read')) return appendRateLimitHeaders(forbiddenScopeResponse('read'), limit);
     const respond = (body: unknown, status = 200) => appendRateLimitHeaders(NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } }), limit);
     try {
         const { trialId } = await params;
         const analysis = await getExperimentResults(agent.userId, trialId);
+        await logApiKeyEvent({ apiKeyId: agent.apiKeyId, appId: null, action: 'read' });
         if ('gated' in analysis && analysis.gated) return respond({ success: true, ...analysis });
         const experiment = await prisma.experiment.findFirst({ where: { id: trialId, userId: agent.userId }, include: { protocol: true, attestations: true } });
         if (!experiment) return respond({ success: false, error: 'Trial not found' }, 404);

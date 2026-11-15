@@ -13,6 +13,8 @@ export async function GET() {
         const habits = await prisma.habit.findMany({
             where: { archived: false, userId: user.id },
             include: { subvariables: true },
+            // `createdByAppId` comes with the row: the Data tab labels those trackers
+            // "Measured by …" instead of looking like something the person logs.
             orderBy: { createdAt: 'asc' }
         });
 

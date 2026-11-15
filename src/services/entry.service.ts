@@ -3,8 +3,20 @@ import { createEntrySchema, quickEntrySchema, updateEntrySchema } from '@/lib/va
 import { normalizeEntryNote } from '@/lib/entryUtils';
 import { isSummedVariable } from '@/lib/dailyChart';
 import { z } from 'zod';
-import { startOfDay, endOfDay, parseISO } from 'date-fns';
+import { isLogicalDay, logicalDayWindow, utcMidnight } from '@/lib/logical-day';
 import { ServiceError } from '@/lib/error-utils';
+import { assertAppMayWrite } from '@/lib/connected-apps';
+
+/** The condition labels an experiment stores as JSON, in order. */
+export function readConditionLabels(conditions: unknown): string[] {
+    try {
+        const parsed = typeof conditions === 'string' ? JSON.parse(conditions) : conditions;
+        if (!Array.isArray(parsed)) return [];
+        return parsed.map((condition) => (typeof condition === 'string' ? condition : String(condition?.label ?? '')));
+    } catch {
+        return [];
+    }
+}
 
 type CreateEntryInput = z.infer<typeof createEntrySchema>;
 type UpdateEntryInput = z.infer<typeof updateEntrySchema>;
@@ -66,10 +78,18 @@ export class EntryService {
 
     /**
      * Creates or updates one variable's value for a day (Check-in quick entry).
-     * Shared by POST /api/entries/quick and the MCP log_checkin tool.
+     * Shared by POST /api/entries/quick, the MCP log_checkin tool and the connected-app API.
      * Returns null when the tracker or variable is not the user's.
+     *
+     * `app` is set only when a connected app is writing (`docs/CONNECTED-APPS.md`). Then the
+     * service — not the route — refuses a tracker the app did not create, stores the writer as
+     * the entry's source, and refuses to overwrite a value the person edited by hand.
      */
-    static async quickEntry(userId: string, body: QuickEntryInput) {
+    static async quickEntry(
+        userId: string,
+        body: QuickEntryInput,
+        app?: { appId: string },
+    ) {
         // Verify the habit belongs to the user and subvariable exists
         const habit = await prisma.habit.findFirst({
             where: {
@@ -86,6 +106,8 @@ export class EntryService {
                 },
             },
         });
+
+        if (app) assertAppMayWrite(app.appId, habit, userId);
 
         if (!habit || habit.subvariables.length === 0) {
             return null;
@@ -106,9 +128,10 @@ export class EntryService {
             if (typeof metadata?.max === 'number' && Number.isFinite(metadata.max) && body.numericValue > metadata.max) throw new ServiceError(`Value must be at most ${metadata.max}`, 400);
         }
 
-        const logicalDate = parseISO(body.logicalDate);
-        const dayStart = startOfDay(logicalDate);
-        const dayEnd = endOfDay(logicalDate);
+        // Always UTC midnight, so the day means the same thing on a server east of UTC
+        // (`src/lib/logical-day.ts`).
+        const logicalDate = utcMidnight(body.logicalDate);
+        const dayWindow = logicalDayWindow(body.logicalDate);
 
         // ========== EXPERIMENT ENFORCEMENT ==========
         // Check if this habit is the independent variable in an active experiment
@@ -133,13 +156,23 @@ export class EntryService {
         if (activeExperiment && activeExperiment.assignments.length > 0) {
             const todayAssignment = activeExperiment.assignments[0];
 
-            // If not explicitly set, try to infer from value
-            // Condition 'A' (first) typically means intervention (value 1)
-            // Other conditions typically mean control/variant (value 0 for binary)
-            const expectedValue = todayAssignment.condition === 'A' ? 1 : 0;
+            // An assignment names a condition either by letter ("A") or by the label the
+            // experiment carries ("Caffeine"), so resolve it to an index the way the Protocol
+            // Command Center does. Comparing the raw string to 'A' made every named condition
+            // look like the baseline, which warned people that taking their own coffee was a
+            // deviation.
+            const labels = readConditionLabels(activeExperiment.conditions);
+            const conditionIndex = labels.findIndex(
+                (label, index) => todayAssignment.condition === String.fromCharCode(65 + index) || todayAssignment.condition === label
+            );
+            const expectedValue = conditionIndex === 0 ? 1 : 0;
             const actualValue = body.numericValue;
 
-            if (body.followedAssignment === undefined) {
+            // Only a yes/no tracker answers "did you follow the assignment". A dose in mg can
+            // never equal the expected 1, so guessing there produces a false warning.
+            const inferable = variable.type === 'BOOLEAN';
+
+            if (body.followedAssignment === undefined && inferable) {
                 // User is manually logging without using Protocol Command Center
                 // Infer compliance based on whether the value matches expected
                 if (!todayAssignment.isWashout) {
@@ -162,15 +195,17 @@ export class EntryService {
             where: {
                 habitId: body.habitId,
                 userId: userId,
-                logicalDate: {
-                    gte: dayStart,
-                    lte: dayEnd,
-                },
+                logicalDate: { gte: dayWindow.gte, lt: dayWindow.lt },
             },
             include: {
                 subvariableEntries: true,
             },
         });
+        // Rows written before the UTC-midnight rule took effect carry the server's local
+        // midnight; the wide window finds them, this keeps only the ones that are this day.
+        if (habitEntry && !isLogicalDay(habitEntry.logicalDate, body.logicalDate)) habitEntry = null;
+
+        const appSource = app ? `app:${app.appId}` : undefined;
 
         // If no entry exists, create one
         if (!habitEntry) {
@@ -182,6 +217,7 @@ export class EntryService {
                     followedAssignment: autoFollowedAssignment,
                     note: normalizeEntryNote(body.note) ?? null,
                     timestamp: new Date(),
+                    ...(appSource ? { source: appSource } : {}),
                 },
                 include: {
                     subvariableEntries: true,
@@ -189,10 +225,25 @@ export class EntryService {
             });
             habitEntry = newEntry;
         } else {
-            const entryUpdateData: { followedAssignment?: boolean; note?: string | null } = {};
+            // An app may not overwrite a value the person edited by hand: the source is
+            // cleared on a manual edit, and that is the signal to refuse (docs/CONNECTED-APPS.md).
+            // Judged per variable, not per day: fixing "Level" by hand must not block the
+            // app's resync of "Sensitivity" (`SubvariableEntry.source`).
+            if (appSource) {
+                const sameVariable = habitEntry.subvariableEntries.find((se) => se.subvariableId === body.subvariableId);
+                const handEdited = sameVariable
+                    ? (sameVariable as { source?: string | null }).source == null
+                    // A day with values but no entry for this variable was filled in by hand.
+                    : habitEntry.subvariableEntries.length > 0;
+                if (handEdited) {
+                    throw new ServiceError('This value was edited by hand, so it is no longer updated by the app', 409);
+                }
+            }
+
+            const entryUpdateData: { followedAssignment?: boolean; note?: string | null; source?: string | null } = {};
             // Health import adds source to the generated model. Any explicit Check-in
             // edit then turns that imported entry into a manual one, including value-only edits.
-            if ('source' in habitEntry) Object.assign(entryUpdateData, { source: null });
+            if ('source' in habitEntry) Object.assign(entryUpdateData, { source: appSource ?? null });
 
             if (autoFollowedAssignment !== undefined) {
                 entryUpdateData.followedAssignment = autoFollowedAssignment;
@@ -224,6 +275,8 @@ export class EntryService {
                 data: {
                     numericValue: body.numericValue,
                     rawValue: body.rawValue,
+                    // An app keeps its own provenance; a person's own write clears it.
+                    source: appSource ?? null,
                 },
             });
         } else {
@@ -234,6 +287,7 @@ export class EntryService {
                     subvariableId: body.subvariableId,
                     numericValue: body.numericValue,
                     rawValue: body.rawValue,
+                    source: appSource ?? null,
                 },
             });
         }
@@ -304,13 +358,13 @@ export class EntryService {
      * Get entries for a specific date range
      */
     static async getEntries(userId: string, startDate: Date, endDate: Date) {
+        // Slack either side, so a row written at a local midnight still lands in the range.
+        const gte = new Date(startDate.getTime() - 86_400_000);
+        const lt = new Date(endDate.getTime() + 2 * 86_400_000);
         return await prisma.habitEntry.findMany({
             where: {
                 userId,
-                logicalDate: {
-                    gte: startOfDay(startDate),
-                    lte: endOfDay(endDate),
-                },
+                logicalDate: { gte, lt },
             },
             include: {
                 habit: {

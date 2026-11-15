@@ -3,13 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generatePrivateKey } from 'viem/accounts';
 const mocks = vi.hoisted(() => ({ prisma: {
     $transaction: vi.fn(), $queryRaw: vi.fn(), habit: { findFirst: vi.fn() },
-    experiment: { create: vi.fn(), findFirst: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn() },
+    experiment: { create: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn(), count: vi.fn() },
+    user: { findUnique: vi.fn() },
     assignment: { createMany: vi.fn() }, habitEntry: { findMany: vi.fn() },
     experimentAttestation: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    apiKey: { findUnique: vi.fn(), update: vi.fn() },
-}, user: vi.fn() }));
+    apiKey: { findUnique: vi.fn(), update: vi.fn(), findFirst: vi.fn() },
+} }));
 vi.mock('@/lib/prisma', () => ({ prisma: mocks.prisma }));
-vi.mock('@/lib/ensure-user', () => ({ getAuthenticatedUser: mocks.user }));
+const session = vi.hoisted(() => ({ user: { id: 'owner' } }));
+vi.mock('@/lib/ensure-user', () => ({ getAuthenticatedUser: async () => session.user }));
+vi.mock('@/lib/rate-limit', () => ({
+    checkKeyRateLimit: async () => ({ allowed: true, limit: 1000, remaining: 999, resetSeconds: 60 }),
+    checkSubjectRateLimit: async () => ({ allowed: true, limit: 1000, remaining: 999, resetSeconds: 60 }),
+    appendRateLimitHeaders: (response: Response) => response,
+    rateLimitedResponse: () => new Response('{}', { status: 429 }),
+}));
 import { createExperiment, getExperimentResults, type ExperimentFormInput } from './experiment.service';
 import { completeExperiment, updateExperimentWithLock } from './attestation.service';
 import { handleMcpPost } from '@/lib/mcp';
@@ -33,7 +41,9 @@ function hydrated() {
 beforeEach(() => {
     vi.resetAllMocks(); vi.stubEnv('ATTESTATION_MODE', 'offchain'); vi.stubEnv('EAS_SIGNER_PRIVATE_KEY', generatePrivateKey());
     experiment = null; assignments = []; records = new Map(); measurements = [];
-    mocks.user.mockResolvedValue({ id: 'owner' });
+    // The M1 gate reads the plan; this fixture's person is Free with nothing running yet.
+    mocks.prisma.user.findUnique.mockImplementation(async ({ where }) => ({ plan: 'free', id: where.id }));
+    mocks.prisma.experiment.findMany.mockResolvedValue([]);
     mocks.prisma.$transaction.mockImplementation(async fn => fn(mocks.prisma));
     mocks.prisma.$queryRaw.mockImplementation(async (_sql, id, userId) => experiment?.id === id && experiment?.userId === userId ? [{ id }] : []);
     mocks.prisma.habit.findFirst.mockImplementation(async ({ where }) => where.userId === 'owner' && [inputId, outcomeId].includes(where.id) ? { id: where.id } : null);
@@ -111,9 +121,11 @@ describe('Shared direct/API/MCP experiment lifecycle', () => {
         await expect(createExperiment('stranger', form)).rejects.toThrow('not found');
         expect(mocks.prisma.experiment.create).not.toHaveBeenCalled();
         await createExperiment('owner', form);
-        mocks.user.mockResolvedValue({ id: 'stranger' });
+        // The completion route is session-authenticated: the stranger is a different session.
+        session.user = { id: 'stranger' };
         const response = await completeRoute(new Request('http://localhost/api/experiments/trial/complete', { method: 'POST' }), { params: Promise.resolve({ id: 'trial' }) });
         expect(response.status).toBe(404);
         expect(records.has('RESULTS')).toBe(false);
+        session.user = { id: 'owner' };
     });
 });

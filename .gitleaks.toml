@@ -1,0 +1,27 @@
+# gitleaks configuration, used before every push of the public AGPL snapshot (`AGENTS.md`, two
+# repositories) and runnable locally with:
+#
+#   gitleaks detect --no-git --redact -v .
+#
+# The default rules are kept. The allowlist below is not "we do not care"; each entry is a value
+# that is public by design and is printed in the browser anyway, so flagging it would train whoever
+# runs this to ignore the output.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Two values that are public by design: the Cloudflare Web Analytics site token, and the API-key placeholder used in the curl examples."
+regexes = [
+  # Cloudflare Web Analytics tokens identify a site, not an account, and the beacon ships them to
+  # every visitor's browser (src/components/analytics/CloudflareAnalytics.tsx). Self-hosted builds
+  # render no beacon at all.
+  '''d69cc2f5c8084ac482d86cb4637f9b2a''',
+  # The literal placeholder in the copy-paste examples of /docs/agent-api: `sk_your_key` is not a
+  # key, and the page would be useless without it.
+  '''X-API-Key: sk_your_key''',
+  '''sk_your_key''',
+  # The deliberately invalid key in the 401 example on the same page.
+  '''X-API-Key: sk_invalid''',
+  '''sk_invalid''',
+]

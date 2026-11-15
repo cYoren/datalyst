@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { ServiceError } from '@/lib/error-utils';
+import { FREE_LIMITS, can } from '@/lib/entitlement';
+import { entitlementFor } from './entitlement.service';
 import {
     performN1Stats,
     performBlockAnalysis,
@@ -88,6 +90,23 @@ export async function listExperiments(userId: string, status?: ExperimentStatus 
  */
 export async function createExperiment(userId: string, data: ExperimentFormInput) {
     if (!['PLANNING', 'ACTIVE'].includes(data.status)) throw new ServiceError('New experiments must start in planning or active status', 400);
+
+    // The first real gate behind `src/lib/entitlement.ts` (`ROADMAP.md` M1/M2). Free runs one
+    // experiment at a time; the refusal names the limit instead of failing vaguely.
+    const entitled = await entitlementFor(userId);
+    if (!can(entitled, 'experiments-in-parallel')) {
+        const running = await prisma.experiment.findMany({
+            where: { userId, status: { in: ['PLANNING', 'ACTIVE'] } },
+            select: { name: true },
+            orderBy: { createdAt: 'desc' },
+        });
+        if (running.length >= FREE_LIMITS.concurrentExperiments) {
+            throw new ServiceError(
+                `Your plan runs one experiment at a time. "${running[0].name}" is still running — finish or archive it first, or run several at once on Plus.`,
+                403,
+            );
+        }
+    }
     const totalDays = Math.round((new Date(data.endDate).getTime() - new Date(data.startDate).getTime()) / 86_400_000) + 1;
     if (!Number.isFinite(totalDays) || totalDays < 8 || totalDays > 366) throw new ServiceError('Experiment duration must be 8 to 366 days', 400);
 
@@ -241,13 +260,26 @@ export async function getExperimentResults(userId: string, id: string) {
         }),
     ]);
 
-    // Build date-indexed maps
+    // Build date-indexed maps. A summed variable (a dose) takes the day's total, the same rule
+    // the chart and the correlation engine use; without it three coffees counted as the last one.
+    const summed = (metadata: string | null | undefined) => {
+        try {
+            return JSON.parse(metadata || '{}').aggregation === 'sum';
+        } catch {
+            return false;
+        }
+    };
+    const addTo = (map: Map<string, number>, date: string, value: number, isSummed: boolean) => {
+        const previous = map.get(date);
+        map.set(date, isSummed && previous !== undefined ? previous + value : value);
+    };
+
     const independentMap = new Map<string, number>();
     independentEntries.forEach(entry => {
         const dateStr = entry.logicalDate.toISOString().split('T')[0];
         const subEntry = entry.subvariableEntries[0];
         if (subEntry) {
-            independentMap.set(dateStr, subEntry.numericValue);
+            addTo(independentMap, dateStr, subEntry.numericValue, summed(('metadata' in independentSub ? independentSub.metadata : null) as string | null));
         }
     });
 
@@ -256,7 +288,7 @@ export async function getExperimentResults(userId: string, id: string) {
         const dateStr = entry.logicalDate.toISOString().split('T')[0];
         const subEntry = entry.subvariableEntries[0];
         if (subEntry) {
-            dependentMap.set(dateStr, subEntry.numericValue);
+            addTo(dependentMap, dateStr, subEntry.numericValue, summed(('metadata' in dependentSub ? dependentSub.metadata : null) as string | null));
         }
     });
     if (frozen) {

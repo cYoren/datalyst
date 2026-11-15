@@ -137,8 +137,14 @@ try {
   assert.notEqual(incomplete.status, 0); assert.match(incomplete.stderr, /Unsupported baseline/);
   run(process.execPath, [path.join(root, 'node_modules/prisma/build/index.js'), 'generate', '--config', config, '--schema', path.join(root, 'prisma/schema.prisma')]);
   const serviceEnv = { ...env, DATALYST_ROLLOUT_PG_URL: env.DATABASE_URL };
-  const serviceTest = spawnSync(process.execPath, [path.join(root, 'node_modules/vitest/vitest.mjs'), 'run', 'src/services/db-rollout.integration.test.ts'], { cwd: root, env: serviceEnv, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
-  if (serviceTest.status !== 0 || !/Tests\s+1 passed/.test(serviceTest.stdout)) throw new Error(`Real service integration failed: ${serviceTest.stdout}\n${serviceTest.stderr}`);
+  // Both walks target this throwaway cluster: the service lifecycle, and the connected-app
+  // contract (`docs/CONNECTED-APPS.md` "Done means" check 1). The app walk does real network
+  // round trips, so it needs more than the default five seconds per test.
+  const serviceFiles = ['src/services/db-rollout.integration.test.ts', 'src/services/connected-apps.integration.test.ts'];
+  const serviceTest = spawnSync(process.execPath,
+    [path.join(root, 'node_modules/vitest/vitest.mjs'), 'run', ...serviceFiles, '--testTimeout=120000'],
+    { cwd: root, env: serviceEnv, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+  if (serviceTest.status !== 0 || !/Tests\s+4 passed/.test(serviceTest.stdout)) throw new Error(`Real service integration failed: ${serviceTest.stdout}\n${serviceTest.stderr}`);
   console.log(serviceTest.stdout);
   console.log('PASS: five migrations applied and replayed atomically; synthetic legacy/history and new feature rows preserved.');
   console.log('PASS: legacy/new expression indexes permitting duplicate emails/key hashes rejected; INCLUDE and deferred uniqueness rejected.');

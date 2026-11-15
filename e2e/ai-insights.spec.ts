@@ -13,7 +13,8 @@ for (const width of [360, 390, 412]) {
       await route.fulfill({ json: { consent, configured: true } });
     });
     // Install dashboard fixtures before navigation: Next may prefetch linked pages.
-    await page.route('**/api/dashboard', route => route.fulfill({ json: { habits: [], stats: { weeklyCompletion: 0, dailyProgress: { percentage: 0, completed: 0, total: 0 }, weeklySummary: { daysActive: 0, totalEntries: 0, avgEntriesPerDay: 0 }, totalLoggingDays: 0 }, insights: { correlations: [] }, user: { name: 'Synthetic' } } }));
+    // The AI panel renders on the dashboard once there is a tracker (habits.length > 0).
+    await page.route('**/api/dashboard', route => route.fulfill({ json: { habits: [{ id: 'habit-walk', name: 'Walk', icon: 'walk', color: '#333333', schedule: {}, subvariables: [] }], stats: { weeklyCompletion: 0, dailyProgress: { percentage: 0, completed: 0, total: 0 }, weeklySummary: { daysActive: 0, totalEntries: 0, avgEntriesPerDay: 0 }, totalLoggingDays: 0 }, insights: { correlations: [] }, user: { name: 'Synthetic' } } }));
     await page.route('**/api/data', route => route.fulfill({ json: { habits: [], entries: [] } }));
     await page.route('**/api/dashboard/today*', route => route.fulfill({ json: { variables: [], logged: 0, total: 0, percentage: 0 } }));
     await page.route('**/api/dashboard/activity?*', route => route.fulfill({ json: { days: [] } }));
@@ -21,27 +22,31 @@ for (const width of [360, 390, 412]) {
     let includePlan = true;
     await page.route('**/api/insights/ai', route => route.fulfill({ json: { state: 'ready', result: {
       findings: [{ evidence: { id: 1, variable1: { habit: 'Walk' }, variable2: { habit: 'Focus' }, coefficient: 0.6, pValue: 0.002, n: 30 }, explanation: 'An association does not establish cause and effect.' }],
-      nextExperiment: includePlan ? { independentId: 'habit-walk', dependentId: 'habit-focus', power: { requiredDays: 28 }, note: 'Review feasibility.' } : null, limitations: 'Exploratory evidence.',
+      // The panel renders one link per direction; a flat plan is not the shape it reads.
+      nextExperiment: includePlan ? { directions: [{ independentId: 'habit-walk', dependentId: 'habit-focus', change: 'Walk', measure: 'Focus', power: { requiredDays: 28 } }], note: 'Review feasibility.' } : null,
+      limitations: 'Exploratory evidence.',
     } } }));
     await page.goto('/settings');
-    const checkbox = page.getByRole('checkbox', { name: 'Allow AI evidence insights' });
+    // The consent lives in Privacy and consent, one place (`ROADMAP.md` A6): the panel above no
+    // longer carries a second switch for the same flag.
+    const checkbox = page.getByRole('checkbox', { name: /I consent to AI explanations/ });
     await expect(checkbox).toBeEnabled();
     await checkbox.click();
-    await expect(page.getByRole('status')).toHaveText('AI insights enabled.');
+    await expect.poll(() => consent).toBe(true);
     await checkbox.click();
-    await expect(page.getByRole('status')).toContainText('cached AI results removed');
+    await expect.poll(() => consent).toBe(false);
     await checkbox.click();
     await expect(checkbox).toBeChecked();
     await page.goto('/dashboard');
     await page.getByRole('button', { name: 'Explain my evidence' }).click();
     await expect(page.getByText('[Evidence 1] Walk and Focus')).toBeVisible();
     await expect(page.getByText('r = 0.600 · p = 0.00200 · n = 30')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Review next experiment in Lab' })).toHaveAttribute('href', '/lab/new?independent=habit-walk&dependent=habit-focus');
+    await expect(page.getByRole('link', { name: 'Change Walk, measure Focus' })).toHaveAttribute('href', '/lab/new?independent=habit-walk&dependent=habit-focus');
     includePlan = false;
     await page.getByRole('button', { name: 'Explain my evidence' }).click();
     await expect(page.getByText('[Evidence 1] Walk and Focus')).toBeVisible();
     await expect(page.getByText(/A Lab experiment needs two distinct trackers/)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Review next experiment in Lab' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Change Walk, measure Focus' })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(unauthorizedRequests).toEqual([]);
   });

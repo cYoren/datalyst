@@ -22,6 +22,10 @@ export interface AuthenticatedAgent {
     agentId?: string;
     scopes: string[];
     rateLimitPerMinute: number;
+    /** Set when the key belongs to a connected app; such a key is never an account key. */
+    appId?: string;
+    /** The variables the person ticked for that app. Empty means it may read none. */
+    readableSubvariableIds: string[];
 }
 
 export function hashApiKey(key: string): string {
@@ -68,6 +72,8 @@ export async function authenticateAgent(
                 revokedAt: true,
                 scopes: true,
                 rateLimitPerMinute: true,
+                appId: true,
+                readableSubvariableIds: true,
             },
         });
 
@@ -88,11 +94,39 @@ export async function authenticateAgent(
             agentId: keyRecord.agentId ?? undefined,
             scopes: keyRecord.scopes,
             rateLimitPerMinute: keyRecord.rateLimitPerMinute,
+            appId: keyRecord.appId ?? undefined,
+            readableSubvariableIds: keyRecord.readableSubvariableIds ?? [],
         };
     } catch {
         console.error('[Agent Auth] Failed to authenticate');
         return null;
     }
+}
+
+/**
+ * Authenticate a request that acts as the person, across the whole account.
+ *
+ * An app key is refused here: a connected app holds app scopes only and may reach
+ * nothing but `/api/v1/app/*` (`docs/CONNECTED-APPS.md`, "The key"). Every account-wide
+ * entry point uses this, so a new one cannot accidentally accept an app key.
+ */
+export async function authenticateAccountAgent(request: Request): Promise<AuthenticatedAgent | null> {
+    const agent = await authenticateAgent(request);
+    if (!agent) return null;
+    return agent.appId ? null : agent;
+}
+
+/**
+ * Authenticate a request from a connected app.
+ *
+ * The mirror of `authenticateAccountAgent`: an account key is refused here, because the app
+ * API answers with app trackers, app scopes and the variables the person ticked for that app
+ * (`docs/CONNECTED-APPS.md`). A key without an appId is not an app.
+ */
+export async function authenticateAppKey(request: Request): Promise<AuthenticatedAgent | null> {
+    const agent = await authenticateAgent(request);
+    if (!agent) return null;
+    return agent.appId ? agent : null;
 }
 
 /**

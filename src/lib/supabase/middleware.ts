@@ -18,6 +18,9 @@ export async function updateSession(request: NextRequest) {
     }
     // Proof verification is public and works even when auth credentials are unavailable.
     if (['/verify', '/api/verify'].includes(pathname)) return NextResponse.next({ request });
+    // A monitor has no session: behind the gate this answers 307 to /login, and an outage is
+    // reported as a healthy login page.
+    if (pathname === '/api/health') return NextResponse.next({ request });
     if (SELF_HOSTED) {
         // Single local user: skip login pages and the marketing homepage.
         const password = process.env.DATALYST_PASSWORD
@@ -110,6 +113,10 @@ export async function updateSession(request: NextRequest) {
     if (!user && !isAuthPage && !isAuthCallback && !isPublicPage && !isPublicDiscoveryPage) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+        // Keep where they were going, query string included: a connect link must come back to
+        // the app that asked for it (`docs/CONNECTED-APPS.md`, step 2).
+        url.search = ''
+        url.searchParams.set('next', `${request.nextUrl.pathname}${request.nextUrl.search}`)
         return NextResponse.redirect(url)
     }
 

@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import { Habit } from '@/types';
+import type { PairReadiness } from '@/lib/pattern-readiness';
 
 // Generic fetcher for SWR
 export const fetcher = async (url: string) => {
@@ -105,6 +106,9 @@ export function useDashboard() {
         habits,
         stats: data?.stats || null,
         insights: data?.insights || null,
+        // Pairs worth naming on the dashboard. `null` when the calculation failed, which is not
+        // the same as "no pairs yet" — the line is omitted rather than guessed at.
+        readiness: (data?.readiness ?? null) as PairReadiness[] | null,
         user: data?.user || null,
         isLoading,
         isError: error,

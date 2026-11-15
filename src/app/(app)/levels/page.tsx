@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { DataPageSkeleton } from '@/components/ui/Skeleton';
 import { LevelsPanel, type LevelEntry, type LevelTracker } from '@/components/levels/LevelsPanel';
 import { useDataPage, useUser } from '@/lib/hooks';
+import { isDoseTracker } from '@/lib/levels';
 
 interface ApiSubvariable {
     id: string;
@@ -36,6 +37,8 @@ export default function LevelsPage() {
             for (const subvariable of habit.subvariables ?? []) {
                 if (subvariable.type !== 'NUMERIC') continue;
                 if (subvariable.active === false) continue;
+                // Only things that actually fade: a dose, not a count.
+                if (!isDoseTracker(`${habit.name} ${subvariable.name}`, subvariable.unit)) continue;
                 list.push({
                     habitId: habit.id,
                     habitName: habit.name,

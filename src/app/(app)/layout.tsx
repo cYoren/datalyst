@@ -76,20 +76,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener('hashchange', syncHash);
     }, [pathname]);
 
+    // Four destinations, in the product's own vocabulary (AGENTS.md, ROADMAP.md A1):
+    // Today, Data, Lab and the profile menu, with Create kept as the centre action.
     const navItems = [
-        { href: '/dashboard', icon: Calendar, label: 'Dashboard' },
+        { href: '/dashboard', icon: Calendar, label: 'Today' },
         { href: '/data', icon: BarChart3, label: 'Data' },
+        { href: '/lab', icon: FlaskConical, label: 'Lab', title: 'Test what works for you' },
         { href: '/levels', icon: Activity, label: 'Levels', title: 'What is still in you at bedtime' },
         { href: '/habits/templates', icon: BookOpen, label: 'Templates' },
-        { href: '/settings', icon: Settings, label: 'Settings' },
         { href: '/habits/new', icon: PlusCircle, label: 'Create tracker' },
-        { href: '/lab', icon: FlaskConical, label: 'Experiments', title: 'Test what works for you' },
+        { href: '/settings', icon: Settings, label: 'Settings' },
     ];
 
     const mobileNavItems = [
-        { href: '/dashboard', icon: Calendar, label: 'Dashboard' },
-        { href: '/habits/new', icon: Plus, label: 'Create', isCreate: true },
+        { href: '/dashboard', icon: Calendar, label: 'Today' },
         { href: '/data', icon: BarChart3, label: 'Data' },
+        { href: '/habits/new', icon: Plus, label: 'Create', isCreate: true },
+        { href: '/lab', icon: FlaskConical, label: 'Lab' },
     ];
 
     const isItemActive = (href: string) => {

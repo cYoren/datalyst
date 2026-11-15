@@ -12,7 +12,8 @@ type SubvariableInput = Omit<z.infer<typeof createSubvariableSchema>, 'habitId'>
 
 type CreateHabitInput = z.infer<typeof createHabitSchema> & {
     subvariables: SubvariableInput[];
-    templateId?: string; // Optional template to use
+    templateId?: string; // Optional user template to use
+    templateOrigin?: string; // The built-in template this tracker came from
 };
 
 type UpdateHabitInput = z.infer<typeof updateHabitSchema> & {
@@ -28,7 +29,7 @@ export class HabitService {
      * Optionally uses a template to pre-populate data
      */
     static async createHabit(userId: string, data: CreateHabitInput) {
-        const { subvariables, templateId, ...habitData } = data;
+        const { subvariables, templateId, templateOrigin, ...habitData } = data;
 
         // If templateId provided, load template and merge with provided data
         let finalHabitData: HabitData = { ...habitData };
@@ -65,6 +66,7 @@ export class HabitService {
                 data: {
                     userId,
                     templateId: templateId || null,
+                    templateOrigin: templateOrigin || null,
                     name: finalHabitData.name,
                     description: finalHabitData.description,
                     color: finalHabitData.color,

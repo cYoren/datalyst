@@ -24,6 +24,9 @@ export async function GET() {
                 email: true,
                 name: true,
                 onboardingCompleted: true,
+                // The plan the gates ask about (`ROADMAP.md` M1). Read-only here; billing sets it.
+                plan: true,
+                planChangedAt: true,
                 timezone: true,
                 locale: true,
                 theme: true,
@@ -78,6 +81,9 @@ export async function PATCH(request: NextRequest) {
                 email: true,
                 name: true,
                 onboardingCompleted: true,
+                // The plan the gates ask about (`ROADMAP.md` M1). Read-only here; billing sets it.
+                plan: true,
+                planChangedAt: true,
                 timezone: true,
                 locale: true,
                 theme: true,

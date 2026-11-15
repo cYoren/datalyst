@@ -14,6 +14,19 @@ vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/ensure-user', () => ({ getAuthenticatedUser: async () => userMock.current }));
 vi.mock('@/services/entry.service', () => ({ EntryService: { quickEntry: quickEntryMock } }));
 vi.mock('@/services/today.service', () => ({ getTodayLog: todayMock }));
+// A counting stand-in for the database counter, honouring the key's own limit.
+const counters = vi.hoisted(() => new Map<string, number>());
+const counter = vi.hoisted(() => async (subject: string, limit: number) => {
+    const next = (counters.get(subject) ?? 0) + 1;
+    counters.set(subject, next);
+    return { allowed: next <= limit, limit, remaining: Math.max(0, limit - next), resetSeconds: 60 };
+});
+vi.mock('@/lib/rate-limit', () => ({
+    checkKeyRateLimit: counter,
+    checkSubjectRateLimit: counter,
+    appendRateLimitHeaders: (response: Response) => response,
+    rateLimitedResponse: () => new Response(JSON.stringify({ success: false, error: 'Rate limit exceeded' }), { status: 429, headers: { 'Retry-After': '60' } }),
+}));
 
 import { createHash } from 'crypto';
 import { POST as issueToken } from './token/route';

@@ -8,6 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EntryEditForm, type EntryEditFormProps } from '@/components/forms/EntryEditForm';
 import { format } from 'date-fns';
 import { buildDailyRows, isSummedVariable } from '@/lib/dailyChart';
+import { connectedAppName } from '@/lib/connected-apps';
 import { DotAreaChart } from '@/components/charts/DotAreaChart';
 import { cn } from '@/lib/utils';
 import { chart } from '@/lib/chartTheme';
@@ -276,6 +277,8 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
         }
     };
 
+    const measuredBy = connectedAppName((selectedHabit as { createdByAppId?: string | null } | undefined)?.createdByAppId);
+
     if (!selectedHabit) {
         return (
             <div className="text-center py-12 space-y-4">
@@ -345,6 +348,13 @@ export function DataDashboard({ habits, entries, onRefresh, focusDate, openEditO
                     </button>
                 ))}
             </div>
+
+            {/* An app's tracker is not something the person logs, so say who measured it. */}
+            {measuredBy && (
+                <p className="-mt-6 text-xs text-[var(--text-tertiary)]" data-testid="measured-by">
+                    Measured by {measuredBy}. Values in this tracker are written by the app, not by you.
+                </p>
+            )}
 
             {/* Date filter */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -7,7 +7,7 @@
  * tablet would revoke each other), revoked in Settings like any other key.
  */
 
-import { authenticateAgent, generateApiKey, type AuthenticatedAgent } from '@/lib/agent-auth';
+import { authenticateAccountAgent, generateApiKey, type AuthenticatedAgent } from '@/lib/agent-auth';
 import { prisma } from '@/lib/prisma';
 import { WIDGET_LOG_SCOPE } from '@/lib/widget-next';
 
@@ -53,7 +53,7 @@ export async function issueWidgetKey(userId: string): Promise<string> {
 
 /** Authenticates a widget request. A normal API key without the widget scope is not enough. */
 export async function authenticateWidget(request: Request): Promise<AuthenticatedAgent | null> {
-    const agent = await authenticateAgent(request);
+    const agent = await authenticateAccountAgent(request);
     if (!agent || !agent.scopes.includes(WIDGET_LOG_SCOPE)) return null;
     return agent;
 }

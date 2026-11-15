@@ -2,7 +2,9 @@
 
 ## Mission and canonical location
 
-Datalyst is a personal statistics and insight product, separate from MedHub. Its canonical VPS working copy is `/root/projects/Datalyst-project`; GitHub is `https://github.com/cYoren/Datalyst-project`. Its public domain is `https://datalyst.one`.
+Datalyst is where a person's day is recorded and the service that tells them what affects what
+(`PRODUCT.md`). It is separate from MedHub, and it is the hub that the maker's other apps connect
+to (`docs/CONNECTED-APPS.md`). Its canonical VPS working copy is `/root/projects/Datalyst-project`; GitHub is `https://github.com/cYoren/Datalyst-project`. Its public domain is `https://datalyst.one`.
 
 **Two repositories, one codebase — never confuse them.**
 
@@ -12,6 +14,11 @@ Datalyst is a personal statistics and insight product, separate from MedHub. Its
   `git archive HEAD` (`.gitattributes` export-ignores `clients/`, `tasks/`, `.gitattributes` itself;
   gitleaks runs before the push). Self-hosters clone that one.
 
+Before the push, `gitleaks detect --no-git --redact -v .` must report no leaks; `.gitleaks.toml`
+keeps the default rules and allowlists only values that are public by design (the Cloudflare
+analytics site token, the `sk_your_key`/`sk_invalid` placeholders in the API examples), each with
+the reason written next to it.
+
 Never treat the public snapshot as a source of truth. The next export replaces whatever is in it, so a
 change made only there is a change that disappears — land it in the private repo and let the snapshot
 follow. Whenever the two disagree, the private repo is right.
@@ -19,7 +26,9 @@ follow. Whenever the two disagree, the private repo is right.
 ## Start here
 
 1. Run `git remote -v`, `git status --short --branch`, and `git branch --show-current`.
-2. Read this contract and the current product README before changing behavior.
+2. Read this contract, then `PRODUCT.md` (what Datalyst is and how work is chosen) and
+   `ROADMAP.md` (the work order: every item has an ID, a priority and an acceptance test; put the
+   ID in the branch name and the PR title). Build what the roadmap lists and nothing it parks.
 3. For architecture questions, query `/root/.hermes/state/repo-maps/Datalyst-project/`.
 4. For change impact, use `/root/.hermes/state/code-review-graphs/Datalyst-project/`.
 5. Preserve unrelated work and keep user data, exports, and credentials out of the repository.
@@ -54,7 +63,13 @@ The repository CI is manual and advisory to conserve GitHub Actions minutes. Tha
 
 ## Locked product contracts
 
-- Primary UX language remains `Tracker`, `Check-in`, `Data`, and `Lab (Advanced)`.
+- Primary UX language is `Tracker`, `Check-in`, `Data`, `Lab`, `Experiment` and `Pattern`.
+- Four destinations on the mobile bar: **Today**, **Data**, **Lab**, and the profile menu, with
+  Create kept as the centre action. The desktop sidebar also carries the secondary places
+  (Levels, Templates, Settings, Create tracker); those are not meant to grow, and Levels is
+  maintained only — fix what is wrong, add nothing (`PRODUCT.md`). "Lab", never "Experiments"
+  or "Lab (Advanced)". A new top-level place has to earn a slot in this list, because adding a
+  fifth mobile tab is a product decision, not a layout one.
 - Daily Check-in is the dominant mobile-first flow and must not regain nested scroll traps.
 - Calendar interaction is tap-first on mobile and must preserve `/data?date=YYYY-MM-DD&openEdit=1`.
 - Auto-open edit behavior is allowed only when exactly one entry exists.
@@ -66,7 +81,7 @@ Datalyst is not MedHub. Do not import MedHub branding, domains, claims, or relea
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+## This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 

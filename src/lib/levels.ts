@@ -195,3 +195,25 @@ export function windowFor(now: Date, openMinutes = 4 * 60): DayWindow {
     const start = atMinuteOfDay(anchor, openMinutes);
     return { start, end: start + 24 * 3_600_000 };
 }
+
+/**
+ * Units that hold an amount of something a body takes in. A dose tracker is one
+ * of these, or one whose name names a known substance.
+ *
+ * `Nutrition · Meals` is not a dose: nothing decays, and "0 MEALS STILL IN YOU"
+ * is the sentence that made this rule necessary (`ROADMAP.md` T5).
+ */
+const DOSE_UNITS = new Set([
+    'mg', 'mcg', 'µg', 'ug', 'g', 'gram', 'grams', 'kg', 'ml', 'l', 'oz', 'fl oz',
+    'cup', 'cups', 'shot', 'shots', 'drink', 'drinks', 'tablet', 'tablets', 'pills',
+    'pill', 'capsule', 'capsules', 'dose', 'doses', 'drop', 'drops', 'puff', 'puffs',
+    'unit', 'units', 'iu', 'serving', 'servings',
+]);
+
+/** True when Levels should offer this tracker as a dose to fade. */
+export function isDoseTracker(name: string, unit?: string | null): boolean {
+    const knownSubstance = HALF_LIFE_PRESETS.some((preset) => preset.match.test(name));
+    if (knownSubstance) return true;
+    const normalised = (unit ?? '').trim().toLowerCase();
+    return normalised.length > 0 && DOSE_UNITS.has(normalised);
+}

@@ -1,5 +1,6 @@
 // Edge-runtime errors (middleware, edge route handlers).
 import * as Sentry from '@sentry/nextjs';
+import { sentryPrivacyOptions } from '@/lib/sentry-scrub';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -8,4 +9,5 @@ Sentry.init({
     enabled: Boolean(dsn),
     environment: process.env.NODE_ENV,
     tracesSampleRate: 0.1,
+    ...sentryPrivacyOptions,
 });

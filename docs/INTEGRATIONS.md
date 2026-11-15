@@ -17,6 +17,7 @@ recruitment consequences.
 | `GET`, `POST` on `/api/user/api-keys`; `DELETE /api/user/api-keys/<id>` | session cookie only | Create, list and revoke keys. An API key can never mint another key |
 | `POST /api/v1/agent/trial`, `/log`, `GET /api/v1/agent/results/<trialId>`, `GET /api/v1/protocols` | API key | The older N=1 trial API: start a protocol trial, log values, read results |
 | `/api/studies/...` | session cookie only | The study routes the web app uses. **Not** reachable with an API key |
+| `/api/v1/app/me`, `/api/v1/app/values` | **app key only** | The connected-app API: its own trackers, the values the person allowed, and the values it writes. See "Connected apps" below |
 | `/.well-known/openapi.json`, `/.well-known/api-catalog`, `/.well-known/agent-skills/index.json`, `/agent.md`, `/auth.md`, `/api/openapi.json`, `/docs/agent-api` | none | Discovery |
 
 `GET` and `DELETE` on `/api/mcp` answer `405`: there is no server-initiated SSE stream and no session.
@@ -36,6 +37,12 @@ recruitment consequences.
 
 The key is a bearer credential for one account. There is no OAuth, no per-user delegation, and no
 server-to-server registration.
+
+An **app key** is the one exception, and it is narrower rather than broader: it carries `appId`, holds
+`app:read` / `app:write` only, cannot read anything the person did not tick, and can write only the
+trackers the app itself created. Every account-wide entry point refuses it, and every app route refuses
+a key without an `appId` — both directions are asserted from the tree in
+`src/lib/app-key-boundary.test.ts`.
 
 ## Scope model
 
@@ -190,6 +197,30 @@ curl -s https://www.datalyst.one/api/mcp \
 invitation link is shown only in Lab, after the researcher has reviewed the protocol and opened
 recruitment.
 
+## Connected apps
+
+Specified in `CONNECTED-APPS.md`; this section is the part that exists. An app connects with
+authorization code + PKCE, receives a key once, and works only through `/api/v1/app/*`:
+
+| Call | Does |
+| --- | --- |
+| `GET /api/v1/app/me` | The app's own trackers and their variables with ids and registry keys, plus the variables the person allowed it to read. No profile fields |
+| `GET /api/v1/app/values?from=&to=` | Daily values for those variables, at most 92 days, each with `date`, `variableId`, `value`, `source` |
+| `PUT /api/v1/app/values` | Up to 50 `{ date, variableKey, value }`, one value per variable per day, idempotent, refused 409 if the person edited that day |
+| `DELETE /api/v1/app/values` | `{ date, variableKey }`, only for a value the app wrote |
+
+The write rule is enforced in `EntryService.quickEntry`, not in the route, so no future path can bypass
+it. Values arrive with `source = "app:<id>"`; a manual edit clears the source and the app's next write
+for that day is refused. Every app write appends an `ApiKeyEvent` — key, app, action, tracker, day, and
+**no value**. The rate limit is one row per key per UTC minute in `ApiKeyUsage`, so two isolates share it.
+
+The person connects from the app: `/connect` shows what it will write and lets them tick the
+variables it may read, then approval issues a one-time code (60 s, bound to the redirect URI and
+the PKCE challenge) that the app trades for its key. Settings → Connected apps shows each app,
+what it may read, when it last synced and what its key last did, with Disconnect in one tap.
+Data labels an app's tracker "Measured by …", and the Lab offers a measured outcome as the other
+side of an experiment. The end-to-end walk lives in `src/services/connected-apps.integration.test.ts`.
+
 ## What the surface cannot do yet
 
 These are the four gaps that separate "an agent can start a study" from "an app can host one". None is
@@ -207,10 +238,14 @@ implemented, and none should be faked by a client.
 3. **Study-scoped keys.** A key is account-wide: `read`/`write` reach every tracker the person ever
    created, and `research:read` reaches every study they are a member of. A third-party host app
    therefore needs a broader key than its job requires. There is no `studyId` on `ApiKey` and no tool
-   allowlist.
+   allowlist. *Partly closed:* an app key is narrower than an account (`readableSubvariableIds`,
+   `createdByAppId`, `app:*` scopes), but that mechanism is for first-party apps in the registry, not
+   for a host app's study.
 4. **An audit trail of agent actions.** `lastUsedAt` records that a key was used, not what it did. There
    is no row per write naming the key, tool, study and time, so "what did the agent do to my account"
-   cannot be answered from the database.
+   cannot be answered from the database. *Partly closed:* `ApiKeyEvent` records app-key actions (key,
+   app, action, tracker, day, no values). Assistant keys do not write to it yet, and nothing reads it in
+   Settings — that is `ROADMAP.md` S3.
 
 Two smaller gaps worth naming: the older `/api/v1/agent/*` REST routes predate studies and cannot touch
 them, and `export_data` (whole account) is the only export tool — there is no per-study export over MCP,

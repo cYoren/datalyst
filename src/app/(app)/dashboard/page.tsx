@@ -8,18 +8,20 @@ import { HabitCard } from '@/components/habits/HabitCard';
 import ActivityCalendar from '@/components/dashboard/ActivityCalendar';
 import { TodaysLogWidget } from '@/components/dashboard/TodaysLogWidget';
 import { QuickLogBar } from '@/components/dashboard/QuickLogBar';
+import { FirstWeekCard } from '@/components/dashboard/FirstWeekCard';
 import { TodayVsAverage } from '@/components/dashboard/TodayVsAverage';
 import { ProtocolCommandCenter } from '@/components/dashboard/ProtocolCommandCenter';
 import AdHocLogModal from '@/components/dashboard/AdHocLogModal';
+import { MoreQuestionsCard } from '@/components/dashboard/MoreQuestionsCard';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { TrendingUp, ArrowUpRight, Plus, FlaskConical, Sparkles } from 'lucide-react';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useDashboard } from '@/lib/hooks';
+import { readinessSentence } from '@/lib/pattern-readiness';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import type { HabitSchedule } from '@/types';
 
@@ -46,7 +48,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 export default function DashboardPage() {
     const router = useRouter();
-    const { habits, stats, insights, user, isLoading, refresh: refreshHabits } = useDashboard();
+    const { habits, stats, insights, readiness, user, isLoading, refresh: refreshHabits } = useDashboard();
     const [isAdHocModalOpen, setIsAdHocModalOpen] = useState(false);
     const [showInsightCelebration, setShowInsightCelebration] = useState(false);
     const [newInsightText, setNewInsightText] = useState<string | null>(null);
@@ -89,9 +91,19 @@ export default function DashboardPage() {
         else setGreeting('Good evening');
     }, []);
 
-    const handleTestCorrelation = (corr: DashboardCorrelation) => {
+    /**
+     * A pattern is between two *variables*; an experiment is between two *trackers*. When both
+     * variables belong to one tracker the pair cannot be tested, so the card says so instead of
+     * opening a form that can only fail validation.
+     */
+    const testablePair = (corr: DashboardCorrelation) => {
         const habit1 = habits.find(h => h.name === corr.variable1.habit);
         const habit2 = habits.find(h => h.name === corr.variable2.habit);
+        return { habit1, habit2, testable: Boolean(habit1 && habit2 && habit1.id !== habit2.id) };
+    };
+
+    const handleTestCorrelation = (corr: DashboardCorrelation) => {
+        const { habit1, habit2 } = testablePair(corr);
         const params = new URLSearchParams();
         if (habit1) params.set('independent', habit1.id);
         if (habit2) params.set('dependent', habit2.id);
@@ -130,6 +142,25 @@ export default function DashboardPage() {
         return <DashboardSkeleton />;
     }
 
+    // An answer is a pattern the engine actually produced. Until there is one, the
+    // check-in is what the dashboard is for. While the cache is being recomputed the
+    // server sends `correlations: []` with `loading: true`, which is not "no answer" —
+    // treat it as "not yet known" so the section is never pulled out from under a
+    // returning user.
+    const insightsLoading = Boolean(insights?.loading);
+    const hasAnswer = (insights?.correlations?.length ?? 0) > 0;
+    // The stale-cache branch answers `{ correlations: [], loading: true }`: "not known yet", not
+    // "no answer". Keep the section on screen and say it is recalculating, but everything that
+    // indexes `correlations[0]` stays behind `hasAnswer` — otherwise a returning user's first
+    // load after the cache expires throws and hits the error boundary.
+    const showInsightsSection = hasAnswer || insightsLoading;
+
+    const readinessNote = readiness && readiness.length > 0
+        ? readiness.map(readinessSentence).join(' ')
+        : readiness === null
+            ? null
+            : 'Log a symptom and one habit on the same day, and this line starts counting days together.';
+
     const pendingHabits = habits.filter(h => !isHabitCompleted(h.id));
     const completedHabits = habits.filter(h => isHabitCompleted(h.id));
 
@@ -144,7 +175,7 @@ export default function DashboardPage() {
                     <p className="mt-2 text-[var(--text-secondary)]" suppressHydrationWarning>{currentDate}</p>
                 </div>
                 <Button
-                    onClick={() => window.location.href = '/habits/new'}
+                    onClick={() => router.push('/habits/new')}
                     variant="outline"
                     size="sm"
                     className="hidden sm:inline-flex"
@@ -154,8 +185,10 @@ export default function DashboardPage() {
                 </Button>
             </header>
 
-            {/* 01 Insights: the product promise is real statistics, so they lead. */}
-            {habits.length > 0 && (
+            {/* Insights lead only once there is an answer. Before that the check-in is
+                the first thing on the screen and the readiness note is one quiet line
+                under it (ROADMAP.md W2, W3). */}
+            {showInsightsSection && (
                 <section aria-labelledby="insights-heading" className="space-y-4 animate-fade-in">
                     <SectionLabel
                         index={1}
@@ -181,102 +214,80 @@ export default function DashboardPage() {
                         </div>
                     )}
 
-                    {insights?.correlations && insights.correlations.length > 0 ? (
-                        <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr]">
-                            {/* Top insight */}
+                    {!hasAnswer && (
+                        <p className="rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 text-sm text-[var(--text-secondary)]" role="status">
+                            Recalculating your patterns. This takes a moment; your check-ins are already saved.
+                        </p>
+                    )}
+
+                    {hasAnswer && (
+                    <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr]">
+                        {/* Top insight */}
+                        <button
+                            type="button"
+                            className="group flex flex-col gap-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 sm:p-7 text-left transition-colors hover:bg-[var(--color-bg-subtle)] lg:row-span-3"
+                            onClick={() => handleTestCorrelation(insights.correlations[0])}
+                        >
+                            <span className="label-mono flex items-center gap-2 text-[var(--color-accent)]">
+                                <TrendingUp className="h-3.5 w-3.5" suppressHydrationWarning />
+                                Strongest signal
+                            </span>
+                            <span className="font-display text-2xl sm:text-[1.9rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--text-primary)]">
+                                {insights.correlations[0].text}
+                            </span>
+                            <span className="mt-auto flex flex-wrap items-end justify-between gap-4">
+                                <span className="flex gap-6">
+                                    <Stat label="p-value" value={formatP(insights.correlations[0].pValue)} />
+                                    <Stat label="Sample" value={`${insights.correlations[0].n} days`} />
+                                </span>
+                                <span className="label-mono flex items-center gap-1.5 text-[var(--text-primary)] group-hover:text-[var(--color-accent)]">
+                                    <FlaskConical className="h-3.5 w-3.5" suppressHydrationWarning />
+                                    {testablePair(insights.correlations[0]).testable ? 'Test it' : 'Same tracker'}
+                                    <ArrowUpRight className="h-3.5 w-3.5" suppressHydrationWarning />
+                                </span>
+                            </span>
+                        </button>
+
+                        {insights.correlations.slice(1, 4).map((corr: DashboardCorrelation, i: number) => (
                             <button
+                                key={i}
                                 type="button"
-                                className="group flex flex-col gap-5 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 sm:p-7 text-left transition-colors hover:bg-[var(--color-bg-subtle)] lg:row-span-3"
-                                onClick={() => handleTestCorrelation(insights.correlations[0])}
+                                className={cn("group flex flex-col gap-3 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 text-left transition-colors hover:bg-[var(--color-bg-subtle)]", !showAllInsights && "max-sm:hidden")}
+                                onClick={() => handleTestCorrelation(corr)}
                             >
-                                <span className="label-mono flex items-center gap-2 text-[var(--color-accent)]">
-                                    <TrendingUp className="h-3.5 w-3.5" suppressHydrationWarning />
-                                    Strongest signal
-                                </span>
-                                <span className="font-display text-2xl sm:text-[1.9rem] font-semibold leading-[1.12] tracking-[-0.03em] text-[var(--text-primary)]">
-                                    {insights.correlations[0].text}
-                                </span>
-                                <span className="mt-auto flex flex-wrap items-end justify-between gap-4">
-                                    <span className="flex gap-6">
-                                        <Stat label="p-value" value={formatP(insights.correlations[0].pValue)} />
-                                        <Stat label="Sample" value={`${insights.correlations[0].n} days`} />
+                                <span className="flex items-start justify-between gap-3">
+                                    <span className="font-display text-base font-semibold leading-snug tracking-[-0.01em] text-[var(--text-primary)]">{corr.text}</span>
+                                    <span className="label-mono flex shrink-0 items-center gap-1 text-[var(--text-tertiary)] group-hover:text-[var(--color-accent)]">
+                                        {testablePair(corr).testable ? 'Test it' : 'Same tracker'}
+                                        <ArrowUpRight className="h-4 w-4" suppressHydrationWarning />
                                     </span>
-                                    <span className="label-mono flex items-center gap-1.5 text-[var(--text-primary)] group-hover:text-[var(--color-accent)]">
-                                        <FlaskConical className="h-3.5 w-3.5" suppressHydrationWarning />
-                                        Run experiment
-                                        <ArrowUpRight className="h-3.5 w-3.5" suppressHydrationWarning />
-                                    </span>
+                                </span>
+                                <span className="flex gap-6">
+                                    <Stat label="p-value" value={formatP(corr.pValue)} />
+                                    <Stat label="Sample" value={`${corr.n} days`} />
                                 </span>
                             </button>
-
-                            {insights.correlations.slice(1, 4).map((corr: DashboardCorrelation, i: number) => (
-                                <button
-                                    key={i}
-                                    type="button"
-                                    className={cn("group flex flex-col gap-3 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] p-5 text-left transition-colors hover:bg-[var(--color-bg-subtle)]", !showAllInsights && "max-sm:hidden")}
-                                    onClick={() => handleTestCorrelation(corr)}
-                                >
-                                    <span className="flex items-start justify-between gap-3">
-                                        <span className="font-display text-base font-semibold leading-snug tracking-[-0.01em] text-[var(--text-primary)]">{corr.text}</span>
-                                        <ArrowUpRight className="h-4 w-4 shrink-0 text-[var(--text-tertiary)] group-hover:text-[var(--color-accent)]" suppressHydrationWarning />
-                                    </span>
-                                    <span className="flex gap-6">
-                                        <Stat label="p-value" value={formatP(corr.pValue)} />
-                                        <Stat label="Sample" value={`${corr.n} days`} />
-                                    </span>
-                                </button>
-                            ))}
-                            {!showAllInsights && insights.correlations.length > 1 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAllInsights(true)}
-                                    className="label-mono min-h-11 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] px-5 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:hidden"
-                                >
-                                    Show {Math.min(insights.correlations.length, 4) - 1} more {Math.min(insights.correlations.length, 4) - 1 === 1 ? 'signal' : 'signals'}
-                                </button>
-                            )}
-                        </div>
-                    ) : (
-                        <Card className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <h3 className="font-semibold text-[var(--text-primary)]">
-                                    {(stats?.totalLoggingDays || 0) >= 14
-                                        ? 'Insights are being calculated'
-                                        : 'Building your dataset'}
-                                </h3>
-                                <p className="text-sm text-[var(--text-secondary)] mt-1">
-                                    {(stats?.totalLoggingDays || 0) >= 14
-                                        ? 'Correlations will appear once calculated.'
-                                        : `${Math.max(0, 14 - (stats?.totalLoggingDays || 0))} more days of check-ins until pattern detection.`}
-                                </p>
-                            </div>
-                            <div className="w-full md:w-56 shrink-0">
-                                <div className="label-mono flex justify-between mb-2">
-                                    <span>{Math.min(stats?.totalLoggingDays || 0, 14)} / 14 days</span>
-                                    <span>{Math.min(Math.round(((stats?.totalLoggingDays || 0) / 14) * 100), 100)}%</span>
-                                </div>
-                                <div
-                                    className="h-1.5 bg-[var(--color-bg-subtle)] overflow-hidden"
-                                    role="progressbar"
-                                    aria-label="Days until pattern detection"
-                                    aria-valuemin={0}
-                                    aria-valuemax={14}
-                                    aria-valuenow={Math.min(stats?.totalLoggingDays || 0, 14)}
-                                >
-                                    <div
-                                        className="h-full bg-[var(--color-accent)] transition-all duration-500"
-                                        style={{ width: `${Math.min(((stats?.totalLoggingDays || 0) / 14) * 100, 100)}%` }}
-                                    />
-                                </div>
-                            </div>
-                        </Card>
+                        ))}
+                        {!showAllInsights && insights.correlations.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAllInsights(true)}
+                                className="label-mono min-h-11 rounded-[var(--radius-card)] bg-[var(--color-bg-card)] px-5 text-left text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:hidden"
+                            >
+                                Show {Math.min(insights.correlations.length, 4) - 1} more {Math.min(insights.correlations.length, 4) - 1 === 1 ? 'signal' : 'signals'}
+                            </button>
+                        )}
+                    </div>
                     )}
                 </section>
             )}
 
-            {/* 02 Daily Check-in: the one thing a returning user opens the app for. */}
+            {/* 01 Daily Check-in: the one thing a returning user opens the app for, and
+                the first thing a new one should see. */}
             <section id="daily-checkin" className="scroll-mt-20 space-y-4">
                 {habits.length > 0 && <QuickLogBar />}
+                {/* Days one, three and seven: a description of what they logged, no statistics. */}
+                <FirstWeekCard />
                 <TodaysLogWidget />
                 {habits.length > 0 && (
                     <div className="flex justify-end">
@@ -289,6 +300,15 @@ export default function DashboardPage() {
                         </button>
                     </div>
                 )}
+                {/* What is still missing for a pattern, in the engine's own terms:
+                    paired days for these two variables, not a global day count. */}
+                {!hasAnswer && habits.length > 0 && readinessNote && (
+                    <p className="px-1 text-xs text-[var(--text-tertiary)]" data-testid="readiness-note">
+                        {readinessNote}
+                    </p>
+                )}
+                {/* After three days the rest of each tracker is worth offering. */}
+                <MoreQuestionsCard habits={habits} loggingDays={stats?.totalLoggingDays ?? 0} />
             </section>
 
             <TodayVsAverage />
@@ -345,7 +365,7 @@ export default function DashboardPage() {
 
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button
-                                onClick={() => window.location.href = '/habits/new'}
+                                onClick={() => router.push('/habits/new')}
                                 size="lg"
                                 className=""
                             >

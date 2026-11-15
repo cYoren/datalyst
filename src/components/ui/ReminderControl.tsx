@@ -4,8 +4,20 @@ import { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { readReminder, remindersSupported, setReminder, type ReminderSetting } from '@/lib/reminders';
 
-/** Daily reminder switch + time. Renders nothing on web or on app builds without the plugin. */
-export function ReminderControl() {
+/** True only where a local notification can actually be scheduled (the native app). */
+export function useRemindersAvailable(): boolean {
+    const [supported, setSupported] = useState(false);
+    useEffect(() => { void remindersSupported().then(setSupported); }, []);
+    return supported;
+}
+
+/**
+ * Daily reminder switch + time. Renders nothing on web or on app builds without the plugin.
+ *
+ * `suggestedTime` is offered the moment the switch is turned on (`ROADMAP.md` W5): the reminder
+ * makes sense at the hour the person actually checks in, not at a default they never chose.
+ */
+export function ReminderControl({ suggestedTime }: { suggestedTime?: string } = {}) {
     const [supported, setSupported] = useState(false);
     const [setting, setSetting] = useState<ReminderSetting>({ enabled: false, time: '20:00' });
     const [denied, setDenied] = useState(false);
@@ -13,9 +25,12 @@ export function ReminderControl() {
     useEffect(() => {
         void remindersSupported().then((ok) => {
             setSupported(ok);
-            setSetting(readReminder());
+            const stored = readReminder();
+            // Only a reminder the person has not chosen yet takes the suggestion.
+            const untouched = !window.localStorage.getItem('datalyst:reminder-v1');
+            setSetting(untouched && suggestedTime ? { ...stored, time: suggestedTime } : stored);
         });
-    }, []);
+    }, [suggestedTime]);
 
     if (!supported) return null;
 

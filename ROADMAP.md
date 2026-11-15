@@ -1,666 +1,281 @@
-# Datalyst AI Platform Roadmap
-
-> **Status:** Approved direction
-> **Destination:** Turn Datalyst into an AI-native personal science platform without replacing its deterministic statistics engine.
-> **Primary product statement:** Datalyst is an AI personal science copilot that turns everyday observations into evidence-backed experiments and next actions.
-
-## 1. Executive decision
-
-Datalyst will become AI-native through an **AI control plane over a deterministic evidence layer**.
-
-The statistics engine remains the source of truth for:
-
-- correlations
-- p-values
-- trends
-- experiment results
-- sample sizes
-- data-quality warnings
-- causal limitations
-
-AI will operate above that layer to help the user:
-
-1. Define what to track.
-2. Log data in natural language.
-3. Understand verified statistical results.
-4. Design N-of-1 experiments.
-5. Choose the next highest-value observation or action.
-
-The AI must not invent statistics, silently mutate user data, or make medical diagnoses.
-
-## 2. Strategic thesis
-
-### The product wedge
-
-> **AI personal science for people who want to understand what actually changes their life.**
-
-Datalyst is not another chatbot and not another streak tracker. Its defensible loop is:
-
-```text
-Observe → Structure → Analyze → Explain → Experiment → Learn
-```
-
-The product becomes meaningfully worse without AI because users must otherwise design protocols, enter structured data, interpret statistical output, and plan experiments manually.
-
-### Why this architecture is correct
-
-- It uses the existing Datalyst assets: protocols, templates, entries, statistical analysis, correlations, experiments, and user authentication.
-- It avoids rebuilding the product as an agent platform.
-- It keeps evidence auditable.
-- It allows models and providers to change without rewriting product logic.
-- It gives users a visible reason to trust Datalyst: AI convenience with statistical restraint.
-
-## 3. Non-negotiable principles
-
-1. **Evidence before language.** AI explains computed evidence. It does not compute evidence.
-2. **Proposal before mutation.** AI proposes protocols, entries, and experiments. The user confirms before data changes.
-3. **No medical claims.** Datalyst is a personal analytics and experimentation product, not a diagnostic or treatment system.
-4. **User data is sensitive.** Habits, journals, correlations, and health-adjacent data receive strict privacy treatment.
-5. **Provider-neutral product code.** No feature may depend directly on one model vendor.
-6. **Server-side model access only.** API keys and provider credentials never enter the browser or mobile bundle.
-7. **No raw sensitive data in logs.** Prompts, model responses, and user entries must not be sent to console logs, error trackers, or analytics by default.
-8. **One modular monolith first.** Do not introduce microservices, queues, vector databases, or autonomous tool agents until measured load or product boundaries justify them.
-9. **The user can correct the model.** Corrections are first-class product feedback, not silent failures.
-10. **Every user-facing conclusion has provenance.** The UI must show what data and method support the conclusion.
-
-## 4. Target user journey
-
-### First session
-
-1. User states a goal in plain language.
-2. AI proposes a small tracking protocol.
-3. User edits and confirms the protocol.
-4. Datalyst creates the protocol using the existing habit and template domain.
-5. User sees the first daily check-in immediately.
-
-### Daily use
-
-1. User logs with a form or natural language.
-2. AI extracts candidate values and shows a confirmation preview.
-3. User confirms or corrects the values.
-4. Datalyst stores the structured entry.
-5. The system tells the user what observation is most useful next.
-
-### After enough data
-
-1. The deterministic stats engine calculates correlations and quality signals.
-2. Datalyst builds an evidence packet.
-3. AI explains the packet in plain language.
-4. AI labels uncertainty, confounding, and non-causal interpretation.
-5. User can dismiss the insight or create an experiment proposal.
-
-### Experiment loop
-
-1. AI proposes a hypothesis and intervention.
-2. User reviews the design.
-3. Existing Lab functionality runs the experiment.
-4. The statistics engine computes the result.
-5. AI summarizes the result and recommends the next decision.
-
-## 5. System design
-
-### 5.1 High-level architecture
-
-```mermaid
-flowchart TD
-    U[Web or mobile client]
-    AUTH[Existing auth and ownership checks]
-    API[Next.js API routes]
-    AI[AI application module]
-    PROVIDER[Provider adapter]
-    MODEL[Approved language model]
-    DOMAIN[Existing domain services]
-    STATS[Deterministic statistics engine]
-    DB[(PostgreSQL via Prisma/Supabase)]
-    AUDIT[AI run and consent audit]
-
-    U --> AUTH
-    AUTH --> API
-    API --> AI
-    AI --> PROVIDER
-    PROVIDER --> MODEL
-    AI --> DOMAIN
-    DOMAIN --> STATS
-    STATS --> DB
-    DOMAIN --> DB
-    AI --> AUDIT
-    AUDIT --> DB
-    STATS --> AI
-    AI --> API
-    API --> U
-```
-
-### 5.2 Recommended architecture pattern
-
-Use a **modular monolith with a small hexagonal boundary around AI providers**.
-
-```text
-src/
-├── ai/
-│   ├── application/       # use cases: propose, parse, explain, plan
-│   ├── domain/            # AI artifact types and policy decisions
-│   ├── evidence/          # deterministic evidence packet builders
-│   ├── providers/         # provider-neutral interface and adapters
-│   ├── prompts/           # versioned prompt templates
-│   ├── schemas/           # Zod input/output contracts
-│   └── safety/            # consent, redaction, limits, refusals
-├── services/              # existing domain services
-├── stats/                 # existing deterministic statistics
-├── app/api/ai/            # authenticated HTTP adapters
-└── lib/                   # existing auth, Prisma, logging, utilities
-```
-
-The exact directory names can be adjusted to match the surrounding code. The boundary matters more than the folder name:
-
-- `ai/application` may call `services`, `stats`, and `lib`.
-- `stats` must not import an LLM provider.
-- Provider adapters must not access Prisma directly.
-- API routes must not contain prompt logic.
-- UI components must not call providers directly.
-
-### 5.3 Request flow
-
-```text
-Request
-  → authenticate user
-  → authorize owned resources
-  → resolve consent and budget
-  → build minimal context
-  → call deterministic domain/evidence services
-  → send structured context to provider
-  → validate model output with Zod
-  → attach evidence references
-  → persist only the approved artifact and safe metadata
-  → return response
-```
-
-## 6. Core AI capabilities
-
-### Capability A: AI Protocol Builder
-
-**Input:** User goal, constraints, optional existing habits and templates.
-
-**Output:** A protocol proposal containing:
-
-- goal statement
-- proposed variables
-- variable types and units
-- schedule
-- expected observation period
-- rationale
-- assumptions
-- optional experiment direction
-
-**Rules:**
-
-- AI may propose but never silently create a protocol.
-- Proposed variables must map to supported Datalyst types or be marked unsupported.
-- The UI must show the exact fields that will be created.
-- User confirmation is required before persistence.
-
-**Success signal:** More users reach a valid first protocol with less manual setup.
-
-### Capability B: Natural-Language Entry Drafts
-
-**Input:** User text such as: `Slept six hours, quality four, two coffees after lunch, low energy.`
-
-**Output:** A draft containing:
-
-- candidate habit/subvariable matches
-- normalized values
-- date/time assumptions
-- missing fields
-- confidence per extraction
-- clarification questions
-
-**Rules:**
-
-- Drafts require confirmation before saving.
-- Ambiguous values become questions, not guesses.
-- Unknown concepts are preserved as unresolved text instead of forced into a field.
-- The raw text is not retained by default after the structured entry is confirmed.
-
-**Success signal:** Lower median time to complete the Daily Check-in without increasing correction or deletion rates.
-
-### Capability C: Evidence-Backed Insight Explanations
-
-**Input:** A deterministic evidence packet from the stats engine.
-
-**Output:**
-
-- concise finding
-- strength and direction
-- sample size
-- method and statistical significance
-- what the result does not prove
-- possible confounders
-- recommended next experiment or observation
-
-**Rules:**
-
-- No model-generated coefficient or p-value.
-- No causal language unless the evidence packet explicitly supports it.
-- The UI links to the underlying data range and method.
-- If evidence is weak, the correct output is uncertainty or no recommendation.
-
-**Success signal:** Users understand and act on insights without increased false-confidence reports.
-
-### Capability D: AI Experiment Planner
-
-**Input:** A verified insight, user goal, and available variables.
-
-**Output:** A proposal containing:
-
-- hypothesis
-- intervention
-- control or baseline
-- outcome variable
-- schedule
-- duration
-- washout or adaptation period
-- possible confounders
-- completion criteria
-- limitations
-
-**Rules:**
-
-- The proposal maps to the existing Lab experiment model.
-- User confirms before experiment creation.
-- AI cannot change an active experiment.
-- Safety-sensitive or medically framed requests receive a boundary response and non-medical tracking alternative.
-
-**Success signal:** More verified insights become completed experiments.
-
-### Capability E: Next-Best Observation
-
-**Input:** Current protocol state, missing data, active experiments, recent insights, and user preferences.
-
-**Output:** One prioritized recommendation for what to observe or complete next.
-
-**Rules:**
-
-- One recommendation, not an overwhelming feed.
-- Explain why the observation has value.
-- Do not create guilt-based or medical urgency language.
-- Respect schedules, snooze, and user dismissal.
-
-**Success signal:** Higher completion of useful observations and stronger 14-day retention.
-
-## 7. Data contracts
-
-### 7.1 Evidence packet
-
-The statistics layer should produce a stable, model-independent object similar to:
-
-```ts
-interface EvidencePacket {
-  id: string;
-  userId: string;
-  source: 'correlation' | 'trend' | 'experiment';
-  variableRefs: string[];
-  observationWindow: {
-    start: string;
-    end: string;
-  };
-  sampleSize: number;
-  method: string;
-  result: {
-    coefficient?: number;
-    pValue?: number;
-    effectSize?: number;
-    confidenceInterval?: [number, number];
-  };
-  dataQuality: {
-    missingRate: number;
-    warnings: string[];
-  };
-  limitations: string[];
-  generatedAt: string;
-}
-```
-
-The LLM receives the minimum required evidence packet, not an unrestricted database dump.
-
-### 7.2 AI artifact
-
-```ts
-interface AiArtifact {
-  id: string;
-  userId: string;
-  kind: 'protocol_proposal' | 'entry_draft' | 'insight_explanation' | 'experiment_proposal' | 'next_observation';
-  status: 'draft' | 'accepted' | 'rejected' | 'expired';
-  schemaVersion: string;
-  evidenceRefs: string[];
-  content: unknown;
-  corrections?: unknown;
-  createdAt: string;
-  acceptedAt?: string;
-}
-```
-
-Use Zod schemas for every `content` variant. Do not persist unvalidated model output.
-
-### 7.3 AI run metadata
-
-For cost, safety, and debugging, persist safe metadata such as:
-
-- provider and model identifier
-- prompt version
-- schema version
-- latency
-- token usage if available
-- status and failure class
-- redaction summary
-- evidence references
-- request correlation ID
-
-Do not persist raw prompts or raw model responses by default. If later required for quality evaluation, use explicit retention, encryption, access control, and user consent.
-
-## 8. API surface
-
-The first API surface should stay internal and authenticated:
-
-```text
-POST /api/ai/protocol-proposals
-POST /api/ai/entry-drafts
-POST /api/ai/insight-explanations
-POST /api/ai/experiment-proposals
-POST /api/ai/next-observation
-POST /api/ai/artifacts/:id/accept
-POST /api/ai/artifacts/:id/reject
-```
-
-Common requirements:
-
-- authenticated user required
-- ownership checks for every referenced habit, entry, insight, and experiment
-- Zod validation on input and output
-- request ID in responses and safe logs
-- rate limiting per user
-- bounded context size
-- consistent error shape
-- no provider details leaked to the client on failure
-
-Do not expose a general public AI API in the first roadmap cycle. Existing agent APIs remain separate and must not gain access to private user data without an explicit contract.
-
-## 9. Privacy and safety design
-
-### Consent
-
-Existing `healthDataConsent` is not automatically consent for external model processing. Before sending sensitive user context to an external provider, add a separate, explicit AI data-processing consent with:
-
-- purpose
-- provider category
-- retention statement
-- ability to withdraw
-- timestamp and policy version
-
-The first implementation may offer a local or no-AI fallback for users who decline external processing.
-
-### Data minimization
-
-- Send only the variables and evidence needed for the task.
-- Prefer identifiers and labels over raw journal text.
-- Redact email addresses, names, tokens, URLs, and unrelated free text.
-- Do not include another user’s context in retrieval or prompts.
-- Never put sensitive user data into URLs, browser storage, or client-side model keys.
-
-### Model behavior
-
-- Treat user-provided text as data, not instructions.
-- No model tool calls in the first phase.
-- No autonomous database writes.
-- Refuse diagnosis, treatment, emergency triage, and medication directives.
-- Return uncertainty when evidence is insufficient.
-
-### Audit and deletion
-
-Every accepted AI artifact must be attributable to:
-
-- user
-- source evidence
-- model/provider
-- prompt version
-- schema version
-- acceptance action
-
-Deleting a user must delete or irreversibly detach AI artifacts and related metadata according to the product retention policy.
-
-## 10. Delivery roadmap
-
-### Phase 0: Foundation and guardrails
-
-**Goal:** Make AI safe to build on without creating a second architecture.
-
-**Deliverables:**
-
-- [x] Create `src/ai` module boundary and provider-neutral interface. — `src/ai/providers/types.ts`, `src/ai/providers/index.ts`, every barrel marked `server-only`; `__tests__/server-only.test.ts` fails if a client file imports one.
-- [x] Add Zod schemas for AI requests, artifacts, and provider responses. — requests/responses in `src/ai/schemas/index.ts`; the artifact and evidence contracts from §7 in `src/ai/schemas/artifacts.ts` (`__tests__/artifacts.test.ts`).
-- [x] Add provider adapter with timeout, retry, rate limit, and cost limit. — `src/ai/policy/runner.ts` (timeout, retry, cost), `src/ai/rate-limit.ts` (per user per capability, `AI_RUNS_PER_MINUTE`; an in-process counter, so per instance), `src/ai/policy/cost-tracker.ts` plus the durable `aiDailyUsage` reservation in `services/ai-insights.service.ts`. The rate limit is enforced by the two callers, not by the policy itself, so a new caller must charge it.
-- [x] Add explicit AI data-processing consent and withdrawal path. — `user.aiConsent` / `aiConsentAt`, `PATCH /api/insights/ai/consent` clears cached AI output, and dispatch holds the consent row lock so a request cannot start after a revoke returns.
-- [x] Add safe AI run metadata and correlation IDs. — `AiRunMetadata` on every run, `aiRunMetadataSchema` as the one persisted shape (asserted against a real run's fields), and `src/ai/run-log.ts` as the only writer.
-- [x] Add redaction and sensitive-data logging tests. — `src/ai/redaction.ts` (a metadata string must be a single token, so prose cannot pass) and `src/ai/run-log.ts`, the one log path, which runs the guard first and drops what fails; `__tests__/redaction.test.ts` and `__tests__/run-log.test.ts`.
-- [x] Create synthetic evaluation fixtures. Never use real user data. — `src/ai/__tests__/fixtures.ts`: goals, quick logs, evidence shapes, invalid model replies, and strings that must never be logged.
-- [x] Define model/provider configuration through server-side environment variables. — `src/ai/config.ts`; nothing provider-shaped reaches the client bundle.
-- [x] Add feature flags so every AI capability can be disabled independently. — `src/ai/flags.ts`; `AI_ENABLED=off` is the master switch, `AI_FEATURE_<CAPABILITY>` per capability, unshipped capabilities default off.
-
-**Exit gate:** A fake provider can run the complete request pipeline in tests, invalid model output is rejected, and no sensitive payload reaches logs. — met by `__tests__/fake-provider.test.ts`, `__tests__/runner.test.ts`, `__tests__/artifacts.test.ts` and `__tests__/redaction.test.ts`. Current state, numbers and gaps: [`docs/AI-PLATFORM-STATE.md`](docs/AI-PLATFORM-STATE.md).
-
-### Phase 1: AI Protocol Builder
-
-**Goal:** Reduce time from signup to a useful tracking protocol.
-
-**Deliverables:**
-
-- [ ] Add goal capture to onboarding.
-- [ ] Generate protocol proposals from the existing template and habit vocabulary.
-- [ ] Render proposed fields, units, schedule, and rationale.
-- [ ] Support edit, accept, reject, and regenerate.
-- [ ] Persist only accepted protocols through existing domain services.
-- [ ] Add evaluation cases for underspecified goals and unsupported variables.
-- [ ] Track proposal acceptance, edits, rejection reasons, and time to first protocol.
-
-**Exit gate:** A new user can describe a goal, review a proposal, accept it, and reach the existing Daily Check-in without manual database repair.
-
-### Phase 2: Natural-Language Entry Drafts
-
-**Goal:** Make daily logging materially faster without compromising data integrity.
-
-**Deliverables:**
-
-- [ ] Add a natural-language input alongside the existing check-in flow.
-- [ ] Parse text into a draft using the user’s current protocol only.
-- [ ] Show field matches, normalized values, assumptions, and unresolved items.
-- [ ] Require confirmation before creating or updating entries.
-- [ ] Support corrections without restarting the full draft.
-- [ ] Preserve the form fallback for users who do not want AI processing.
-- [ ] Measure parse accuracy and user correction rate on synthetic fixtures.
-
-**Exit gate:** The AI draft path never writes unconfirmed values and has no worse deletion/correction behavior than manual entry.
-
-### Phase 3: Evidence-Backed Insight Explanations
-
-**Goal:** Turn existing correlations into understandable, honest decisions.
-
-**Deliverables:**
-
-- [ ] Define the `EvidencePacket` builder over existing stats results.
-- [ ] Add structured insight explanation schema.
-- [ ] Render evidence, uncertainty, limitations, and next step separately in the UI.
-- [ ] Add “show the data” and method details.
-- [ ] Add deterministic fallback copy if the provider is unavailable.
-- [ ] Add evaluation set covering positive, negative, weak, nonsignificant, confounded, and insufficient-data cases.
-- [ ] Add a user correction or “this is misleading” action.
-
-**Exit gate:** The AI cannot invent a coefficient, p-value, sample size, or causal claim in automated evaluation.
-
-### Phase 4: AI Experiment Planner and Next-Best Observation
-
-**Goal:** Connect insights to the existing Lab workflow and improve retention.
-
-**Deliverables:**
-
-- [ ] Convert an accepted insight into an experiment proposal.
-- [ ] Map proposals to existing `Experiment` fields and validation.
-- [ ] Add hypothesis, intervention, baseline, schedule, and limitation review.
-- [ ] Require confirmation before creating an experiment.
-- [ ] Generate one next-best observation from current protocol state.
-- [ ] Respect dismissal, snooze, schedule, and accessibility preferences.
-- [ ] Add completion and insight-to-experiment metrics.
-
-**Exit gate:** A user can move from a verified insight to a valid Lab experiment without leaving Datalyst or manually translating statistical output.
-
-### Phase 5: Learning loop and monetization
-
-**Goal:** Turn AI utility into a durable product advantage and paid value.
-
-**Deliverables:**
-
-- [ ] Build a user-controlled memory layer for stable preferences and goals.
-- [ ] Store correction signals separately from raw model prompts.
-- [ ] Add model/provider quality and cost dashboards.
-- [ ] Define free-tier AI limits from real usage and cost data.
-- [ ] Test a paid tier around protocol design, advanced explanations, experiments, and longitudinal memory.
-- [ ] Add export and deletion coverage for AI artifacts.
-- [ ] Revisit external integrations only after the core loop has retention evidence.
-
-**Exit gate:** AI-assisted users show better activation, useful logging, or experiment completion than the non-AI fallback, at a sustainable cost per active user.
-
-## 11. Metrics and evaluation
-
-### North-star metric
-
-**Evidence-backed decisions per active user.**
-
-A decision counts only when it is linked to a user-approved observation, experiment, or action supported by Datalyst evidence.
-
-### Product metrics
-
-- time to first accepted protocol
-- first-week check-in completion
-- 14-day retention
-- natural-language draft acceptance rate
-- correction rate after AI extraction
-- insight explanation open rate
-- insight-to-experiment conversion
-- experiment completion rate
-- next-best-observation completion rate
-- AI fallback usage
-
-### AI quality metrics
-
-- structured extraction accuracy
-- unsupported-field rate
-- invalid-output rejection rate
-- hallucinated-statistic rate
-- unsupported-causal-claim rate
-- user correction rate
-- refusal correctness
-- p50 and p95 latency
-- cost per accepted artifact
-- provider error rate
-
-### Evaluation rules
-
-- Use synthetic and hand-authored fixtures first.
-- Include adversarial inputs, ambiguous dates, unit variations, missing values, prompt injection text, and medical requests.
-- Run deterministic validation before any qualitative scoring.
-- Do not optimize for response length or chat engagement.
-- Quality means correct, useful, bounded, and evidence-linked.
-
-## 12. Operational design
-
-### Reliability
-
-- Provider timeout: return deterministic fallback or ask the user to retry.
-- Provider outage: core tracking and statistics remain fully usable.
-- Invalid output: reject, record safe failure metadata, and show a recovery path.
-- Rate limit: preserve manual form entry and explain the limit plainly.
-- Model change: require prompt/schema evaluation before activation.
-
-### Cost control
-
-- Use the smallest model that passes the task evaluation.
-- Use structured extraction for simple tasks and reserve stronger models for synthesis.
-- Bound input context and output tokens.
-- Cache deterministic evidence, not speculative AI text.
-- Track cost by feature, user, provider, and accepted artifact.
-
-### Observability
-
-Track safe operational fields only:
-
-- request ID
-- user-scoped opaque ID
-- feature kind
-- provider/model
-- prompt/schema version
-- latency
-- token usage
-- status
-- error class
-- evidence reference count
-
-Never log raw habit entries, journals, prompts, or model responses by default.
-
-## 13. Out of scope for this roadmap cycle
-
-- general-purpose autonomous agent with arbitrary tools
-- diagnosis, treatment, or clinical decision support
-- training a proprietary foundation model
-- vector search over raw personal journals
-- social feeds or community benchmarking
-- multi-user collaboration
-- microservices migration
-- event sourcing of the entire application
-- automatic medication, supplement, or lifestyle prescriptions
-- replacing the deterministic statistics engine with an LLM
-- native navigation chrome in the shells (native tab bar, Liquid Glass, native transitions)
-
-### Adjacent track: native surfaces
-
-The Capacitor shells and the home screen widgets are not AI work, so this roadmap does not plan them.
-The decision log (Capstart, Capacitor Native UI and NativeScript rejected; Capgo Native Navigation
-deferred until the WebView has local assets), the widget inventory and the next-build checklist live in
-[`docs/native-surfaces.md`](docs/native-surfaces.md).
-
-### Adjacent track: hosted research studies
-
-"Multi-user collaboration" above means teams working inside the consumer product. It does **not** exclude
-researcher studies, which already ship: a preregistered protocol with a frozen hash, a consent link, an
-immutable randomized assignment snapshot, a pseudonymous evidence packet and EAS attestations
-([`docs/researcher-studies.md`](docs/researcher-studies.md)).
-
-This roadmap does not plan them and they do not depend on any AI capability here. The work that stands
-between "shipped" and "easy to host" is tracked separately: a validated protocol editor, a power hint
-and a one-page study report in [`docs/studies-roadmap.md`](docs/studies-roadmap.md); the key, scope and
-MCP surface an app or an agent uses is in [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
-
-## 14. First implementation sequence
-
-When execution starts, follow this order:
-
-1. Create the AI module boundary and fake provider.
-2. Define schemas and evidence contracts.
-3. Add consent, redaction, feature flags, and safe metadata.
-4. Build the Protocol Builder end to end.
-5. Verify activation and first-protocol metrics.
-6. Build natural-language entry drafts.
-7. Build evidence-backed explanations.
-8. Connect explanations to experiment proposals.
-9. Add next-best-observation only after the earlier loop works.
-
-Do not start with a chat screen. Start with the smallest AI action that improves a real product outcome.
-
-## 15. Definition of done for the AI platform
-
-The roadmap is successful when:
-
-- Datalyst can truthfully market itself as an AI personal science platform.
-- AI is present in protocol creation, logging, interpretation, and experimentation.
-- Every AI conclusion is linked to deterministic evidence or explicitly labeled as a proposal.
-- Users can accept, reject, correct, export, and delete AI artifacts.
-- The non-AI product remains useful during provider outages or consent refusal.
-- No user data crosses a provider boundary without explicit policy and technical controls.
-- AI-assisted users show measurable improvement in activation, retention, logging, or experiment completion.
-- The system remains a maintainable modular monolith rather than an expensive collection of agents.
+# Roadmap
+
+Status: current (2026-11-14)
+
+`PRODUCT.md` is the direction. This file is the work order: what to build, in
+what order, and how to tell it is done. The AI platform contract that used to
+live here is now `docs/AI-PLATFORM.md`; it still governs how AI work is done,
+and no longer decides what is built next.
+
+## How to use this
+
+- Every item has an ID. Put it in the branch name and the PR title.
+- **P0** first. **P1** next. **P2** only when you are already in the file.
+- "Accept" is the test of done. If you cannot meet it, say so in the PR.
+- One concern per PR. Read `AGENTS.md` for the repository rules.
+- UI work: check 360, 390 and 412 px, plus the Daily Check-in and Data flows.
+
+## What this is based on
+
+`main` at `9bfe83c`, built as the self-hosted image and walked as a new
+person on 2026-11-14 (onboarding, first check-in, dashboard, Data, Lab, a new
+experiment, Levels, studies, Settings), plus the live landing page and the
+code. Screenshots: `~/Work/datalyst-audit-2026-11-14/` (local evidence, not
+in the repository).
+
+The honest summary: **the engine is strong and the product is spread thin.**
+Statistics, experiments, health import, widgets, an MCP server, studies and a
+self-hosted build all exist. But there is no paid plan while the site says
+there is one, a new person's first day is ten questions under a "0 / 14 days"
+bar, the Lab (the thing that makes Datalyst different) is in a profile menu
+and tells people it "proves causation", a template that should start an
+experiment opens an empty form, and no other app can connect without someone
+pasting an account-wide key. Five identities are in the docs and the code.
+The work below picks one and finishes it.
+
+## Milestone 1: true and trustworthy
+
+Small, and before anything else, because each one is a promise the product
+breaks today.
+
+**T1. Remove the paid plan that does not exist (P0).** `src/lib/faq.ts` and
+`src/app/llms.txt/route.ts` say "The paid plan is for people who log every
+day and want the full history, more trackers and more experiments." No plan,
+price or billing code exists. Say what is true: free today. Also check
+`ai-policy.ts`, the landing page and both store listings for the same claim.
+Accept: no text in the app, the site, the agent files or the listings
+mentions a plan until M5 ships; a test fails if "paid plan" returns before a
+plan exists.
+
+**T2. The self-hosted build sends nothing to us (P0).**
+`CloudflareAnalytics.tsx` falls back to datalyst.one's analytics token, so
+every self-hosted install loads Cloudflare's beacon and reports to our
+account. In self-hosted mode the component renders nothing unless the
+operator sets their own token. Accept: a test renders the layout with
+`NEXT_PUBLIC_DATALYST_SELF_HOSTED=1` and finds no third-party script; the
+README says so in one line.
+
+**T3. Stop saying "prove causation" (P0).** `lab/page.tsx` and
+`about/page.tsx`. A randomized experiment on one person supports a conclusion
+about that person; say that. Accept: the phrases "prove", "proves" and
+"proven" do not appear in user-facing copy; a test greps for them.
+
+**T4. One vocabulary (P1).** The Lab says "Test correlations between your
+protocols" and "Select a protocol…" where the product's word is Tracker.
+User-facing words are Tracker, Check-in, Data, Lab, Experiment, Pattern.
+"Protocol" is for studies only; "habit" stays in code. Accept: a test greps
+user-facing strings in `(app)/` for the retired words.
+
+**T5. Things that should not be on a consumer's screen (P1).** "System Logs"
+in the profile menu; the "Researcher studies" card as the first thing in the
+Lab; Levels offering "Nutrition · Meals" as a dose and reporting "0 MEALS
+STILL IN YOU". Hide Logs outside self-hosted, move studies to the bottom of
+the Lab, and let Levels list only trackers marked as a dose. Accept:
+screenshots.
+
+**T6. The sample data link (P1).** In the audit, "Explore with 30 days of
+sample data" on onboarding left the dashboard unchanged for an account that
+already had trackers, with no message. Find out what it does in that state
+and make it either work or say why not.
+
+## Milestone 2: the first week pays
+
+The activation number is the second day of check-ins. Today's first day works
+against it.
+
+**W1. A smaller first day (P0).** The preselected Gut pack creates four
+trackers and ten daily questions. Every pack gets a "start" set of at most
+five questions: the symptom, and the two or three most likely triggers. The
+rest of the pack is offered after the third day of check-ins. Accept: no
+default first check-in has more than five questions; the activation report
+is run before and after and both numbers are in the PR.
+
+Status 2026-11-14: the first half is met (the cap is in the code and tested).
+The second half is only half met, and honestly: the report was never run
+*before* the change, so there is no "before" to compare. The first numbers
+taken after it, on 19 accounts, are the baseline the next change is measured
+against — 63% created a tracker, 58% saved a check-in, 32% logged on two
+days, 21% on seven, 21% created an experiment, median 0.9 hours to the first
+check-in. `docs/activation-2026-11-14.md` records the command and the output.
+
+**W2. The check-in comes first (P0).** On the dashboard the "Insights:
+Building your dataset · 0 / 14 days · 0%" card sits above the check-in for a
+new person. Until there is an answer to show, the check-in is the first thing
+on the screen and the progress note is one quiet line under it. Accept:
+screenshots at 360, 390, 412 for day 0, day 1 and a day with a pattern.
+
+**W3. Replace the 14-day promise (P0).** Decided here, closing
+`OPEN-DECISIONS.md` §1: onboarding stops promising an answer "after 14 days".
+It says what is true: you see your week from day one, and a pattern appears
+when two things have been logged together on enough days. The dashboard
+counter becomes per pair, for the pairs closest to ready: "Sleep and
+headache: 6 more days together." Accept: no global day counter remains; the
+readiness number comes from the same rule the correlation engine uses, in a
+shared function with a test.
+
+**W4. Something back on days one, three and seven (P0).** No statistics
+claimed, only description, each with its count:
+
+- Day 1: "Logged. Tomorrow at the same time?" with the reminder offer.
+- Day 3: your three days side by side for the main symptom.
+- Day 7: a week summary: best and worst day, averages, and one descriptive
+  line such as "On the 3 days you slept under 6 h, headache averaged 6.3; on
+  the other 4 it averaged 3.1 (7 days, too few to call a pattern)."
+
+Deterministic copy, no AI needed, AI explanation optional on top. Accept:
+fixtures for each day render the expected card; the day-7 line always carries
+its n and its caution.
+
+**W5. The reminder at the moment it makes sense (P1).** Offered after the
+first saved check-in, at the hour of that check-in. Accept: a test.
+
+**W6. Widget device pass (P0 for the next store build).** One-tap logging has
+never run on hardware. The checklist is in `docs/native-surfaces.md`. Needs
+Gus or the Mac.
+
+## Milestone 3: answers people can use
+
+**A1. The Lab is a main tab (P0).** Bottom navigation becomes Today, Data,
+Lab, Profile, with the add button kept. The label is "Lab", not "Lab
+(Advanced)". `AGENTS.md` is updated in the same PR. Accept: screenshots; the
+mobile e2e suite passes.
+
+**A2. A template starts an experiment (P0).** "Caffeine → Focus" today opens
+an empty form listing the person's unrelated trackers. A template creates the
+trackers it needs (after showing them), fills the form, and leaves one
+decision: when to start. Accept: from a fresh account, a randomized
+experiment is running in under a minute from the template card.
+
+**A3. Verdicts in plain words (P0).** Experiment results and patterns lead
+with one of three readings, shared with Advanced Dual N-Back: a clear change,
+within noise, not enough data yet. The numbers (effect size, interval, p,
+posterior) sit under it. While an experiment is running, the screen shows
+what is still needed and does not show the difference. Accept: fixtures for a
+null effect, a large effect and an unfinished experiment read correctly; no
+result screen leads with a p value.
+
+**A4. From a pattern to a test in one tap (P1).** Every pattern card has
+"Test it", which opens A2's flow with both variables filled.
+
+**A5. A result worth showing (P1).** A finished experiment renders as one
+image: the question, the days, the verdict, the number with its interval.
+The `/share/[slug]` page already exists; this is the image and the share
+button. Null results included.
+
+**A6. Settings in sections (P1).** One long page today, opening with
+"Connect your AI" and a Cloud card. Sections in this order: Account,
+Reminders, Health import, Connected apps and assistants, Privacy and AI,
+Export and import, Plan, Danger zone.
+
+## Milestone 4: the service others build on
+
+**S1. Connected apps (P0).** Build `docs/CONNECTED-APPS.md` exactly: the
+registry, the connect screen with PKCE, app-limited keys, `/api/v1/app/*`,
+`ApiKeyEvent`, Settings → Connected apps, sources on entries, measured
+variables, the Lab template for a measured outcome. Order:
+
+1. Schema and service rule (`appId`, `readableSubvariableIds`,
+   `createdByAppId`, `ApiKeyEvent`), with the test that an app key is refused
+   everywhere else.
+2. `/api/v1/app/*` and OpenAPI.
+3. The connect screen and token exchange.
+4. Settings → Connected apps, and the "Measured by" label in Data.
+5. The Lab template and the one-line pointer to the app.
+
+Accept: the four "Done means" checks in that document.
+
+**S2. A rate limit that holds (P0).** Limits are counted in process memory,
+per isolate. Move the counter to the database or the edge for MCP, the app
+API and AI runs. Accept: two instances share one limit in a test.
+
+**S3. A record of what a key did (P1).** `ApiKeyEvent` from S1, written for
+assistant keys too, readable in Settings.
+
+**S4. Service readiness (P0 before a plan is sold).** Written down and
+tested once, in `docs/PRIVACY_OPERATIONS.md` or a new runbook: a restore from
+backup onto a scratch database; an uptime check on `/api/health`; who is
+paged and how; the database tier (a free tier that pauses is not a service
+people pay for); error reporting with no values in it. Accept: the runbook
+exists and the restore drill has a date on it.
+
+Met 2026-11-14: the runbook is `docs/SERVICE_OPERATIONS.md`, and the drill was
+run against a scratch database in the production instance — 517 KB dump,
+42 s to dump, 4 s to restore, 19 accounts and 533 check-ins recovered
+identically, `check:migrations` and `verify.sql` clean, and an account with 126
+check-ins rendered through the real services. The log has the date, the numbers
+and the one finding: a restore into a fresh Supabase database needs
+`--schema=public --no-privileges`, because the project ships its own `auth`
+schema and keeps app types from a half-finished attempt.
+
+**S5. Advanced Dual N-Back, end to end (P1).** Once S1 is merged, that app's
+1.3 work can start. Datalyst's part is done when its device check passes.
+
+## Milestone 5: the plan
+
+Blocked on one decision by Gus (`OPEN-DECISIONS.md`): the price and the
+billing route. Do not start the billing code before it is made. Everything
+else can be prepared:
+
+**M1. Entitlement (P0).** `User.plan` and one function, `can(user, feature)`,
+used by every gate. Self-hosted always answers yes. Free and Plus as
+`PRODUCT.md` defines them. Accept: a table-driven test of every feature
+against both plans and self-hosted.
+
+**M2. Gates at the moment of intent (P0).** A locked feature is visible,
+tappable, and opens one screen that names the thing reached for, what Plus
+adds in three lines, and the price from the store or the processor. Never on
+the dashboard, never before the first check-in. Nobody loses a feature they
+are already using: existing accounts keep what they have (record the cut-off
+date in the PR).
+
+**M3. Billing (P0, after the decision).** In-app purchase on iOS and Android,
+card on the web, one entitlement in the database, restore, cancel, and the
+store review notes.
+
+**M4. Say it everywhere at once (P0).** FAQ, agent files, landing, both
+store listings, README, in the PR that turns the plan on. T1's test flips.
+
+## After these
+
+- Health import as the default first step for people who have a phone full
+  of data: connect health, pick one symptom, and patterns can start on data
+  that already exists.
+- AI next-best observation and the experiment planner (`docs/AI-PLATFORM.md`
+  phases 4), once A2 to A4 show which step people stall on.
+- Number and scale logging from the widget.
+- Other first-party apps as connected apps, one at a time.
+
+## Parked, and what would reopen it
+
+| Idea | Reopens when |
+| --- | --- |
+| AI Protocol Builder in onboarding | The activation report shows people stalling on choosing trackers, not on the first check-in. It may never stand before the first check-in. |
+| Studies: protocol editor, power hint, report (`docs/studies-roadmap.md`) | A researcher is running a real study and asks |
+| Server-to-server study enrolment | The light path has hosted real studies |
+| On-chain attestations beyond what ships | Someone needs to verify a result and cannot |
+| Apple Watch app | The phone widgets have passed on devices and people use them |
+| Desktop app with a local database, sync (`tasks/local-first-plan.md`) | Self-hosted users ask for it in numbers, or Cloud needs offline logging |
+| Third-party connected apps | A first-party app has run on the contract for a release |
+| Memory layer, cost dashboards (`docs/AI-PLATFORM.md` phase 5) | AI usage is large enough to need them |
+| Microsoft Store, more browser stores | Never a priority; do it if it is free |
+
+## Out
+
+A general chat assistant. Social feeds, communities, leaderboards. Team
+workspaces. Diagnosis or treatment advice. Selling or sharing data. Gating a
+person's own history.
+
+## Numbers
+
+From `npm run activation:report` and the store consoles, monthly:
+
+| Number | Why |
+| --- | --- |
+| Signed up → first check-in | Onboarding works |
+| First check-in → second day | The first day was worth repeating |
+| Second day → seventh day | The first week paid |
+| People with a pattern or a finished experiment | The north star |
+| Store installs, by listing | Whether "Symptom Tracker" found people. The four-week read of the 2026-10-16 repositioning is due now; run it before touching the listing again |
+
+All aggregate. No per-person analytics, no values, nothing new on the
+check-in path.

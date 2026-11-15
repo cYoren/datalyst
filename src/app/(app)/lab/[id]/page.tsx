@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
+import { experimentVerdict } from '@/lib/verdict';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { FlaskConical, ArrowLeft, Play, Archive, Loader2, Download, ShieldCheck, ChevronDown, AlertTriangle, TrendingUp } from 'lucide-react';
@@ -322,6 +323,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
 
     const { experiment, independent, dependent, chartData, stats } = results;
 
+
     // ========== GATED RESULTS UI ==========
     // For ACTIVE experiments, show progress instead of full stats
     if (results.gated) {
@@ -432,6 +434,24 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
             </Card>
         );
     }
+
+    // One call, one reading: the verdict is what the screen leads with, the
+    // numbers below are the evidence for it.
+    const conditionLabels = stats.conditionLabels ?? [];
+    const verdict = experimentVerdict({
+        outcome: dependent.name,
+        // "the Caffeine days", not "the Sleep days": name the change, then its two arms.
+        change: conditionLabels.length === 2
+            ? `${conditionLabels[0]} and ${conditionLabels[1]}`
+            : `${independent.name} days`,
+        daysA: stats.n1?.nA ?? 0,
+        daysB: stats.n1?.nB ?? 0,
+        effectSize: stats.n1?.effectSize ?? null,
+        pValue: stats.n1?.tTest?.pValue ?? null,
+        // A multi-arm run has no two-arm comparison, and an engine that could not compute one
+        // is not the same as a person who has not logged enough.
+        mode: stats.n1 ? 'two-arm' : stats.multiArm ? 'multi-arm' : 'unavailable',
+    });
 
     return (
         <div className="space-y-6">
@@ -549,6 +569,22 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
 
             {lifecycleError && <p role="alert" className="text-sm text-[var(--color-error)]">{lifecycleError}</p>}
             <ExperimentProofs id={id} />
+            {/* ========== VERDICT: the one reading to take away ==========
+                Three readings, shared with Advanced Dual N-Back. The numbers sit under
+                it (ROADMAP.md A3), so no result screen leads with a p value. */}
+            <Card
+                className={cn(
+                    "p-6 border border-[var(--color-border)] paper-lift",
+                    stats.n1 ? 'bg-[var(--color-bg-card)]' : 'bg-[var(--color-bg-subtle)]/60'
+                )}
+            >
+                <p className="label-mono mb-2 text-[var(--text-tertiary)]">What this shows</p>
+                <h2 className="font-display text-2xl font-semibold leading-tight text-[var(--text-primary)] mb-2">
+                    {verdict.headline}
+                </h2>
+                <p className="text-[var(--text-secondary)]">{verdict.sentence}</p>
+            </Card>
+
             {/* ========== INTERPRETATION CARD (Plain English Results) ========== */}
             {stats.interpretation && (
                 <Card className={cn(
@@ -560,9 +596,13 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                 )}>
                     <div className="flex items-start gap-4">
                         <div className="flex-1">
-                            <h2 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+                            {/* Not a second headline: the verdict above is the reading. This is
+                                the engine's own summary of the same numbers, so it is labelled
+                                as detail and cannot argue with the verdict at a glance. */}
+                            <p className="label-mono mb-1 text-[var(--text-tertiary)]">What the numbers say</p>
+                            <p className="text-base font-semibold text-[var(--text-primary)] mb-2">
                                 {stats.interpretation.headline}
-                            </h2>
+                            </p>
                             <p className="text-[var(--text-secondary)] mb-3">
                                 {stats.interpretation.effectDescription}
                             </p>
@@ -610,7 +650,7 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                                         disabled={sharing}
                                         onClick={async () => {
                                             let slug = experiment.isPublic ? experiment.slug : null;
-                                            if (!slug && !confirm('Publish these results publicly? Anyone with the link can view the experiment title, protocol, dates, condition summaries and results. Public copies may remain after you stop sharing.')) return;
+                                            if (!slug && !confirm('Publish these results publicly? Anyone with the link can view the experiment title, plan, dates, condition summaries and results. Public copies may remain after you stop sharing.')) return;
                                             setSharing(true); setShareMessage('');
                                             try {
                                                 if (!slug) {
@@ -640,6 +680,35 @@ export default function ExperimentDetailsPage({ params }: { params: Promise<{ id
                                         } catch (error) { setShareMessage(error instanceof Error ? error.message : 'Could not stop sharing'); } finally { setSharing(false); }
                                     }}>Stop public sharing</Button>}
                                     {experiment.isPublic && experiment.slug && <Link className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'text-[var(--color-accent)]')} href={`/share/${encodeURIComponent(experiment.slug)}`} target="_blank" rel="noreferrer">View public results</Link>}
+                                    {/* A5: the result as one image — question, days, verdict, number with its interval. */}
+                                    {experiment.isPublic && experiment.slug && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="gap-2"
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(`/api/og/${encodeURIComponent(experiment.slug!)}`);
+                                                    if (!response.ok) throw new Error('Could not render the image');
+                                                    const blob = await response.blob();
+                                                    const href = URL.createObjectURL(blob);
+                                                    const link = document.createElement('a');
+                                                    link.href = href;
+                                                    link.download = `datalyst-${experiment.slug}.png`;
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    link.remove();
+                                                    URL.revokeObjectURL(href);
+                                                    setShareMessage('Result image saved.');
+                                                } catch (error) {
+                                                    setShareMessage(error instanceof Error ? error.message : 'Could not render the image');
+                                                }
+                                            }}
+                                        >
+                                            <Download className="h-4 w-4" />
+                                            Save image
+                                        </Button>
+                                    )}
                                     {shareMessage && <p className="w-full text-sm text-[var(--text-secondary)]" role="status">{shareMessage}</p>}
                                 </div>
                             )}

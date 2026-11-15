@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import useSWR from 'swr';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonVariants } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
 import { FlaskConical, ArrowLeft, Loader2, Plus, X, AlertTriangle } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/Tooltip';
 import { fetcher } from '@/lib/hooks';
+import { conditionLabel, experimentTemplateById } from '@/lib/experiment-templates';
+import { getTemplateById } from '@/lib/templates';
 
 interface Habit {
     id: string;
@@ -73,6 +76,154 @@ export default function NewExperimentPage() {
         setBlockSize(conditions.length * 2);
     }
 
+    // Two ways in, one flow (ROADMAP.md A2, A4): a Lab template
+    // (`?template=caffeine`) or a pattern's "Test it" (`?independent=…&dependent=…`).
+    // Both create what they need, then leave one decision: when to start.
+    const template = experimentTemplateById(searchParams.get('template'));
+    const [templateStart, setTemplateStart] = useState<'tomorrow' | 'today'>('tomorrow');
+    const createdNames = useRef<{ id: string; name: string }[]>([]);
+    const [templateError, setTemplateError] = useState<string | null>(null);
+
+    // A pattern links here with two trackers. Two *variables* of the same tracker cannot be
+    // split into an experiment at the tracker level, so say that instead of opening a form that
+    // can only fail validation.
+    const sameTrackerRequest = (() => {
+        const indParam = searchParams.get('independent');
+        const depParam = searchParams.get('dependent');
+        if (!indParam || !depParam || indParam !== depParam) return null;
+        const list = Array.isArray(habits) ? habits : [];
+        return list.find((h) => h.id === indParam) ?? null;
+    })();
+
+    const wantsManualForm = searchParams.get('manual') === '1';
+
+    const quickStart = (() => {
+        if (wantsManualForm) return null;
+        if (template) return template;
+        if (sameTrackerRequest) return null;
+        const indParam = searchParams.get('independent');
+        const depParam = searchParams.get('dependent');
+        const list = Array.isArray(habits) ? habits : [];
+        const independent = list.find((h) => h.id === indParam);
+        const dependent = list.find((h) => h.id === depParam);
+        if (!independent || !dependent) return null;
+        return {
+            id: 'pattern',
+            title: `${independent.name} \u2192 ${dependent.name}`,
+            question: `Does ${independent.name} change ${dependent.name}?`,
+            independent: { templateId: '', name: independent.name, id: independent.id },
+            dependent: { templateId: '', name: dependent.name, id: dependent.id },
+            days: 14,
+            explanation:
+                'Datalyst fills each six-day block with three change days and three baseline days in random order, so a run of good or bad days cannot pass for an effect.',
+        };
+    })();
+
+    const handleStartTemplate = async () => {
+        if (!quickStart) return;
+        setIsSubmitting(true);
+        setTemplateError(null);
+        try {
+            // Trackers created here are remembered, so a retry after a later failure does not
+            // create a second one with the same name.
+            const created: string[] = [];
+            const ensureTracker = async (ref: { templateId: string; name: string; id?: string }) => {
+                if (ref.id) return ref.id;
+                const known = [...(Array.isArray(habits) ? habits : []), ...createdNames.current];
+                const found = known.find((h: { name: string }) => h.name === ref.name);
+                if (found) return (found as { id: string }).id;
+                const definition = getTemplateById(ref.templateId);
+                if (!definition) throw new Error(`Unknown tracker template: ${ref.templateId}`);
+                const res = await fetch('/api/habits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: definition.name,
+                        description: definition.description,
+                        icon: definition.icon,
+                        color: definition.color,
+                        subvariables: definition.subvariables.map((sub) => ({
+                            name: sub.name,
+                            type: sub.type,
+                            unit: 'unit' in sub ? sub.unit || undefined : undefined,
+                            order: sub.order,
+                            metadata: sub.metadata || {},
+                        })),
+                    }),
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || `Could not create ${ref.name}`);
+                }
+                const habit = await res.json();
+                createdNames.current.push({ id: habit.id, name: habit.name });
+                created.push(habit.id);
+                return habit.id as string;
+            };
+
+            const independentHabitId = await ensureTracker(quickStart.independent);
+            const dependentHabitId = await ensureTracker(quickStart.dependent);
+
+            // Calendar arithmetic in UTC only. `setDate` mutates local time while
+            // `toISOString` reads UTC, which put the start date a day off for everyone east or
+            // west of Greenwich — "Start today" could land in the past.
+            const start = new Date();
+            if (templateStart === 'tomorrow') start.setUTCDate(start.getUTCDate() + 1);
+            const startDate = start.toISOString().slice(0, 10);
+            const end = new Date(`${startDate}T00:00:00Z`);
+            end.setUTCDate(end.getUTCDate() + quickStart.days - 1);
+
+            const res = await fetch('/api/experiments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: quickStart.question,
+                    hypothesis: quickStart.question,
+                    independentId: independentHabitId,
+                    dependentId: dependentHabitId,
+                    startDate,
+                    endDate: end.toISOString().slice(0, 10),
+                    status: 'ACTIVE',
+                    type: 'RANDOMIZED',
+                    randomizationType: 'BLOCKED',
+                    washoutPeriod: 0,
+                    blockSize: 6,
+                    isBlind: false,
+                    conditions: [
+                        { label: conditionLabel(quickStart.independent.name) },
+                        // Keep the tracker's own casing: lowercasing mangles non-English names.
+                        { label: conditionLabel(`No ${quickStart.independent.name}`) },
+                    ],
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                // A 400 from the form schema answers { error: 'Validation failed', details }; the
+                // sentence that helps is in details, not in the code.
+                const detail = data.details?.formErrors?.[0]
+                    ?? data.details?.fieldErrors?.dependentId?.[0]
+                    ?? data.details?.fieldErrors?.endDate?.[0];
+                throw new Error(typeof data.error === 'string' && data.error !== 'Validation failed'
+                    ? data.error
+                    : detail || 'Could not start the experiment');
+            }
+            const experiment = await res.json();
+            router.push(`/lab/${experiment.id}`);
+        } catch (err: unknown) {
+            // Be explicit about what exists now: the trackers may have been created before the
+            // experiment failed, and a silent half-finished state is worse than a stated one.
+            const added = createdNames.current.map((tracker) => tracker.name);
+            const message = err instanceof Error ? err.message : 'Could not start the experiment';
+            setTemplateError(
+                added.length > 0
+                    ? `${message} (${added.join(' and ')} ${added.length === 1 ? 'is' : 'are'} now in your trackers.)`
+                    : message
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -123,6 +274,123 @@ export default function NewExperimentPage() {
     };
 
     const filteredHabits = Array.isArray(habits) ? habits.filter(h => !h.id.includes('archived')) : [];
+
+    if (sameTrackerRequest) {
+        return (
+            <div className="max-w-2xl mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/lab')} aria-label="Back to Lab">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <h1 className="text-xl font-bold text-[var(--text-primary)]">Test one thing against another</h1>
+                </div>
+                <Card className="p-5 space-y-3">
+                    <p className="text-[var(--text-primary)]">
+                        Both variables are in {sameTrackerRequest.name}, so they always move together on the same
+                        check-in.
+                    </p>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                        An experiment changes one thing and measures another, so it needs two trackers. Log the thing you
+                        change in its own tracker and this becomes a test.
+                    </p>
+                    <Link href="/habits/new" className={cn(buttonVariants({ size: 'sm' }), 'inline-flex')}>
+                        <Plus className="mr-1.5 h-4 w-4" /> Create the tracker to change
+                    </Link>
+                </Card>
+            </div>
+        );
+    }
+
+    // One decision: when. Everything else a template needs, it creates.
+    if (quickStart) {
+        const existing = Array.isArray(habits) ? habits : [];
+        const manualParams = new URLSearchParams({ manual: '1' });
+        for (const [key, ref] of [['independent', quickStart.independent], ['dependent', quickStart.dependent]] as const) {
+            const id = (ref as { id?: string }).id;
+            if (id) manualParams.set(key, id);
+        }
+        const willCreate = [quickStart.independent, quickStart.dependent].filter(
+            (ref) => (ref as { id?: string }).id ? false : !existing.some((habit) => habit.name === ref.name)
+        );
+        return (
+            <div className="max-w-2xl mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={() => router.push('/lab')} aria-label="Back to Lab">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-[var(--radius-card)] border border-[var(--color-border-hover)] bg-[var(--color-bg-subtle)]">
+                            <FlaskConical className="h-5 w-5 text-[var(--color-accent)]" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-[var(--text-primary)]">{quickStart.title}</h1>
+                            <p className="text-sm text-[var(--text-secondary)]">{quickStart.days} days</p>
+                        </div>
+                    </div>
+                </div>
+
+                <Card className="p-5 space-y-4">
+                    <p className="text-[var(--text-primary)]">{quickStart.question}</p>
+                    <p className="text-sm text-[var(--text-secondary)]">{quickStart.explanation}</p>
+                    <div className="space-y-2 border-t border-[var(--color-border)] pt-4">
+                        <p className="label-mono text-[var(--text-tertiary)]">
+                            {willCreate.length > 0 ? 'Added for you' : 'Your trackers'}
+                        </p>
+                        <ul className="space-y-1 text-sm text-[var(--text-primary)]">
+                            <li>{quickStart.independent.name} — what you change</li>
+                            <li>{quickStart.dependent.name} — what you measure</li>
+                        </ul>
+                        {willCreate.length > 0 && (
+                            <p className="text-xs text-[var(--text-tertiary)]">
+                                {willCreate.map((ref) => ref.name).join(' and ')} {willCreate.length === 1 ? 'is not' : 'are not'} in your trackers yet, so
+                                {willCreate.length === 1 ? ' it is' : ' they are'} created with this experiment.
+                            </p>
+                        )}
+                    </div>
+                </Card>
+
+                <Card className="p-5 space-y-3">
+                    <p className="label-mono text-[var(--text-tertiary)]">When to start</p>
+                    <div className="flex gap-2">
+                        {(['tomorrow', 'today'] as const).map((choice) => (
+                            <button
+                                key={choice}
+                                type="button"
+                                onClick={() => setTemplateStart(choice)}
+                                aria-pressed={templateStart === choice}
+                                className={cn(
+                                    'min-h-11 px-4 rounded-[var(--radius-card)] text-sm transition-colors',
+                                    templateStart === choice
+                                        ? 'bg-[var(--color-accent)] text-white'
+                                        : 'bg-[var(--color-bg-subtle)] text-[var(--text-primary)] hover:bg-[var(--color-bg-card)]'
+                                )}
+                            >
+                                {choice === 'tomorrow' ? 'Tomorrow' : 'Today'}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-[var(--text-tertiary)]">
+                        Each six-day block holds three change days and three baseline days, in random order. If you
+                        start today, log the rest of today as it happens.
+                    </p>
+                </Card>
+
+                {templateError && <p role="alert" className="text-sm text-[var(--color-error)]">{templateError}</p>}
+
+                <Button onClick={handleStartTemplate} disabled={isSubmitting || isLoading} className="w-full" size="lg">
+                    {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...</> : 'Start experiment'}
+                </Button>
+                <p className="text-center text-xs text-[var(--text-tertiary)]">
+                    <Link
+                        href={`/lab/new?${manualParams.toString()}`}
+                        className="underline underline-offset-4 hover:text-[var(--text-secondary)]"
+                    >
+                        Set one up manually instead
+                    </Link>
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -200,7 +468,7 @@ export default function NewExperimentPage() {
                                     className="w-full px-3 py-2.5 rounded-[var(--radius-card)] border border-[var(--color-control-border)] bg-[var(--color-control-bg)] text-[var(--text-primary)] focus:bg-[var(--color-control-bg-focus)]"
                                     required
                                 >
-                                    <option value="">Select a protocol...</option>
+                                    <option value="">Select a tracker...</option>
                                     {filteredHabits.map(habit => (
                                         <option key={habit.id} value={habit.id} disabled={habit.id === dependentId}>
                                             {habit.name}
@@ -223,7 +491,7 @@ export default function NewExperimentPage() {
                                     className="w-full px-3 py-2.5 rounded-[var(--radius-card)] border border-[var(--color-control-border)] bg-[var(--color-control-bg)] text-[var(--text-primary)] focus:bg-[var(--color-control-bg-focus)]"
                                     required
                                 >
-                                    <option value="">Select a protocol...</option>
+                                    <option value="">Select a tracker...</option>
                                     {filteredHabits.map(habit => (
                                         <option key={habit.id} value={habit.id} disabled={habit.id === independentId}>
                                             {habit.name}

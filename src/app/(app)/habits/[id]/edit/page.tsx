@@ -193,11 +193,11 @@ export default function EditHabitPage({ params }: { params: Promise<{ id: string
             <Modal
                 isOpen={showArchiveConfirm}
                 onClose={() => setShowArchiveConfirm(false)}
-                title="Archive Protocol?"
+                title="Archive tracker?"
             >
                 <div className="space-y-4">
                     <p className="text-[var(--text-secondary)]">
-                        Are you sure you want to archive this protocol? It will no longer appear on the dashboard.
+                        Are you sure you want to archive this tracker? It will no longer appear on the dashboard.
                     </p>
                     <div className="flex gap-3 justify-end">
                         <Button variant="ghost" onClick={() => setShowArchiveConfirm(false)}>

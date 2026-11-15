@@ -3,7 +3,7 @@ import 'server-only';
 import { z } from 'zod';
 
 /**
- * The contracts between the deterministic engine and the model, from ROADMAP §7.
+ * The contracts between the deterministic engine and the model, from docs/AI-PLATFORM.md §7.
  *
  * Nothing the model produces is persisted or rendered until it parses here: an artifact is
  * a proposal with a schema version, never a database write. The evidence packet travels the

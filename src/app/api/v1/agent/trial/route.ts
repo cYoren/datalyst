@@ -7,10 +7,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { authenticateAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
+import { authenticateAccountAgent, forbiddenScopeResponse, hasScope, unauthorizedResponse } from '@/lib/agent-auth';
 import { z } from 'zod';
 import { generateBlockedSchedule } from '@/stats/analysis';
 import { appendRateLimitHeaders, checkAgentRateLimit, rateLimitedResponse } from '@/lib/agent-rate-limit';
+import { logApiKeyEvent } from '@/lib/app-api';
 import { updateExperimentWithLock } from '@/services/attestation.service';
 
 const StartTrialSchema = z.object({
@@ -23,11 +24,11 @@ const StartTrialSchema = z.object({
 
 export async function POST(request: NextRequest) {
     // Authenticate the agent
-    const agent = await authenticateAgent(request);
+    const agent = await authenticateAccountAgent(request);
     if (!agent) {
         return unauthorizedResponse();
     }
-    const rateLimit = checkAgentRateLimit(`agent:${agent.apiKeyId}:trial`, agent.rateLimitPerMinute);
+    const rateLimit = await checkAgentRateLimit(`agent:${agent.apiKeyId}:trial`, agent.rateLimitPerMinute);
     if (!rateLimit.allowed) {
         return rateLimitedResponse(rateLimit);
     }
@@ -193,6 +194,8 @@ export async function POST(request: NextRequest) {
 
         // Freeze and sign the completed plan only after assignments exist.
         await updateExperimentWithLock(experiment.id, agent.userId, { status: 'ACTIVE' });
+        // Starting a trial is the action a person most wants to see attributed (S3).
+        await logApiKeyEvent({ apiKeyId: agent.apiKeyId, appId: null, action: 'start-trial' });
         // Return the trial info with logging schema
         return withRateLimit(NextResponse.json({
             success: true,

@@ -3,7 +3,7 @@ import { clearPersistedCache, readPersistedCache, setCacheOwner } from './SWRPro
 
 const KEY = 'datalyst-swr-cache';
 
-function persist(owner: string, entries: Record<string, unknown>, version = 2) {
+function persist(owner: string, entries: Record<string, unknown>, version = 3) {
     window.localStorage.setItem(KEY, JSON.stringify({ version, owner, entries }));
 }
 
@@ -56,7 +56,7 @@ describe('persisted SWR cache', () => {
     });
 
     it('drops an unattributed blob', () => {
-        window.localStorage.setItem(KEY, JSON.stringify({ version: 2, entries: { '/api/dashboard': { streak: 4 } } }));
+        window.localStorage.setItem(KEY, JSON.stringify({ version: 3, entries: { '/api/dashboard': { streak: 4 } } }));
         expect(hydrate('user-a').size).toBe(0);
     });
 

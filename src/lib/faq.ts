@@ -14,7 +14,7 @@ export const HOMEPAGE_FAQ: FaqItem[] = [
     },
     {
         q: 'Is it free?',
-        a: 'Tracking is free to start. The paid plan is for people who log every day and want the full history, more trackers and more experiments. The source code is published under AGPL-3.0 if you would rather self-host it.',
+        a: 'Yes. Everything Datalyst does today is free: unlimited trackers and check-ins, patterns, the Lab, the widgets, the full export of your data, and the self-hosted build. The source code is published under AGPL-3.0 if you would rather run it yourself.'
     },
     {
         q: 'Does it diagnose anything?',

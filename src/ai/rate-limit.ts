@@ -24,10 +24,10 @@ export interface AiRateLimitResult {
 }
 
 /** Counts one run against the user's minute for this capability. */
-export function checkAiRateLimit(
+export async function checkAiRateLimit(
     userId: string,
     capability: string,
     limit: number = configuredLimit(),
-): AiRateLimitResult {
+): Promise<AiRateLimitResult> {
     return checkAgentRateLimit(`ai:${userId}:${capability}`, limit);
 }

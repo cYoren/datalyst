@@ -6,7 +6,9 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 const CACHE_STORAGE_KEY = 'datalyst-swr-cache';
 // Bumped whenever the persisted shape changes, so an older blob is dropped
 // instead of being misread.
-const CACHE_VERSION = 2;
+// 3: the dashboard payload gained `readiness`; a version 2 blob would render the
+// "log a symptom and one habit" line to a long-time user until revalidation landed.
+const CACHE_VERSION = 3;
 
 // Hard ceiling on what we hand to localStorage. Past a few hundred KB the
 // blocking JSON.parse on the next launch is felt as a frozen splash on phones,

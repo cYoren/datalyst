@@ -87,9 +87,14 @@ enum RandomizationType {
 // ========================================
 
 model User {
+  /// The account's plan (`ROADMAP.md` M1, `src/lib/entitlement.ts`). Anything but "plus" is free.
+  plan String @default("free")
+  /// When the plan last changed; the cut-off for "nobody loses what they already had" (M2).
+  planChangedAt DateTime?
   aiConsent Boolean @default(false)
   aiConsentAt DateTime?
   aiUsage AiDailyUsage[]
+  connectCodes ConnectCode[]
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
@@ -190,6 +195,18 @@ model Habit {
 
   // Set on trackers created by the Apple Health / Health Connect import (see src/lib/health-metrics.ts)
   healthMetric String?
+
+  // The HABIT_TEMPLATES id this tracker was created from (src/lib/templates.ts). A name is a
+  // label a person may edit; this is the identity the app reasons about.
+  templateOrigin String?
+
+  // Set on trackers created by a connected app (docs/CONNECTED-APPS.md). A write from
+  // that app is accepted only when this matches the key's appId.
+  createdByAppId String?
+
+  // The app's own tracker key, e.g. "app:advanced-dual-n-back:working-memory". Identity, so a
+  // person may rename the tracker without reconnecting creating a second one.
+  appTrackerKey String?
   
   // Timestamps
   createdAt   DateTime @default(now())
@@ -323,6 +340,10 @@ model SubvariableEntry {
   id            String   @id @default(cuid())
   habitEntryId  String
   subvariableId String
+
+  /// Who wrote this value: null for the person, `app:<id>` for a connected app, or a health
+  /// source. Per variable, so an app can resync one variable after the person edited another.
+  source        String?
   
   // Values
   numericValue  Float           // Standardized numeric value (even for boolean: 0 or 1)
@@ -521,6 +542,13 @@ model ApiKey {
   agentId     String?           // Optional agent identifier
   scopes      String[] @default(["read", "write"])
 
+  // A key with an appId belongs to a connected app (docs/CONNECTED-APPS.md). It gets
+  // none of the account-wide behaviour: app:read / app:write only, and writes only to
+  // trackers that app created.
+  appId String?
+  // The variables the person ticked on the connect screen. Empty means it may read none.
+  readableSubvariableIds String[] @default([])
+
   // Rate limiting
   rateLimitPerMinute Int @default(60)
 
@@ -535,7 +563,66 @@ model ApiKey {
   createdAt   DateTime @default(now())
   lastUsedAt  DateTime?
 
+  events ApiKeyEvent[]
+  usage  ApiKeyUsage[]
+
   @@index([userId])
+  @@index([appId])
+}
+
+/// A durable rate-limit counter: one row per key per UTC minute. Counted in the database
+/// rather than in process memory, so two isolates share one limit (ROADMAP.md S2).
+model ApiKeyUsage {
+  id          String   @id @default(cuid())
+  /// A key's counter. Null when the counter belongs to a non-key subject (an AI run per user).
+  apiKeyId    String?
+  /// A namespaced subject for anything that is not a key, e.g. `ai:<userId>:insights`.
+  subject     String?
+  windowStart DateTime
+  count       Int      @default(0)
+
+  apiKey ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@unique([apiKeyId, windowStart])
+  @@unique([subject, windowStart])
+}
+
+/// A one-time authorization code for a connected app (`docs/CONNECTED-APPS.md`, "Connecting").
+/// Stored hashed, lives 60 seconds, and is consumed by the token exchange.
+model ConnectCode {
+  id          String   @id @default(cuid())
+  codeHash    String   @unique
+  appId       String
+  userId      String
+  redirectUri String
+  /// PKCE S256 challenge: base64url(sha256(verifier)).
+  codeChallenge String
+  /// The variables the person ticked on the connect screen. Empty means it may read none.
+  readableSubvariableIds String[] @default([])
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// What a key did, without what it saw: no values, no notes. Written for app keys and
+/// assistant keys (docs/CONNECTED-APPS.md, "Limits and records").
+model ApiKeyEvent {
+  id         String   @id @default(cuid())
+  apiKeyId   String
+  /// Denormalised so the row survives the key being deleted, and so Settings can read it.
+  appId      String?
+  action     String   // "read" | "write" | "delete" | "connect" | "disconnect"
+  habitId    String?
+  logicalDate DateTime? // the calendar day written, when the action names one
+  createdAt  DateTime @default(now())
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId, createdAt])
 }
 
 enum StudyStatus {

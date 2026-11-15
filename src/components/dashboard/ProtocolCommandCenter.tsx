@@ -123,9 +123,11 @@ export function ProtocolCommandCenter() {
             : {
                 icon: 'activity',
                 title: experiment.isBlind ? 'Variant day' : currentConditionLabel,
+                // Name the condition the schedule picked, rather than guessing "do not take it":
+                // blocks are randomized, so the label is the only thing that is certainly true.
                 subtitle: conditionLabels.length > 2
                     ? `Follow condition: ${currentConditionLabel}`
-                    : `Do NOT take ${experiment.independent.name} today`,
+                    : `${experiment.independent.name}: ${currentConditionLabel}`,
                 bgColor: 'bg-[var(--color-bg-card)] border-[var(--color-border)]',
                 textColor: 'text-[var(--text-primary)]',
                 ringColor: 'ring-1 ring-[var(--color-violet)]/10 ',

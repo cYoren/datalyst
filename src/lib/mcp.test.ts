@@ -10,6 +10,16 @@ const prismaMock = vi.hoisted(() => ({
     experiment: { findFirst: vi.fn(), findMany: vi.fn() },
 }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
+vi.mock('@/lib/rate-limit', () => ({
+    checkKeyRateLimit: async () => ({ allowed: true, limit: 1000, remaining: 999, resetSeconds: 60 }),
+    checkSubjectRateLimit: async () => ({ allowed: true, limit: 1000, remaining: 999, resetSeconds: 60 }),
+    appendRateLimitHeaders: (response: Response) => response,
+    rateLimitedResponse: () => new Response('{}', { status: 429 }),
+}));
+
+// The event writer needs a database; the test only needs to see what it was handed.
+const eventMock = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/app-api', () => ({ logApiKeyEvent: eventMock }));
 
 import { handleMcpPost } from './mcp';
 
@@ -223,5 +233,30 @@ describe('MCP tools', () => {
         const result = await toolResult(await call('list_experiments', {}, 'dl_read'));
         expect(result.isError).toBe(true);
         expect(result.text).toBe('Internal error. Please try again later.');
+    });
+});
+
+describe('what a key did, from the MCP server (S3)', () => {
+    it('records a write from an assistant key, with the tracker and the day', async () => {
+        // An assistant that logged a check-in used to leave no trace, so Settings said "nothing
+        // happened". The event carries the action, the tracker and the day — never the value.
+        eventMock.mockClear();
+
+        prismaMock.apiKey.findUnique.mockResolvedValue({
+            id: 'k_write', userId: 'alice', scopes: ['read', 'write'], isActive: true,
+            revokedAt: null, rateLimitPerMinute: 60, appId: null, name: 'Assistant', keyHash: 'h',
+        });
+        prismaMock.habit.findFirst.mockResolvedValue({ id: 'h1', userId: 'alice', archived: false, subvariables: [{ id: 's1', type: 'NUMERIC', metadata: '{}', active: true }] });
+        prismaMock.habitEntry.findFirst.mockResolvedValue(null);
+        prismaMock.habitEntry.create.mockResolvedValue({ id: 'e1', source: null, subvariableEntries: [] });
+        prismaMock.subvariableEntry.create.mockResolvedValue({ id: 'se1', numericValue: 7 });
+
+        await call('log_checkin', { habitId: 'h1', subvariableId: 's1', numericValue: 7, logicalDate: '2026-10-06' }, 'dl_write');
+
+        expect(eventMock).toHaveBeenCalledWith(
+            expect.objectContaining({ action: 'write', habitId: 'h1', logicalDate: new Date('2026-10-06T00:00:00Z') }),
+        );
+        // The value is not in the event, only the day it belongs to.
+        expect(JSON.stringify(eventMock.mock.calls)).not.toContain('numericValue');
     });
 });

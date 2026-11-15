@@ -41,12 +41,12 @@ export async function DELETE() {
 
         return NextResponse.json({
             success: true,
-            message: `Archived ${deleted.count} protocols`
+            message: `Archived ${deleted.count} trackers`
         });
     } catch (error) {
         console.error('Archive all error:', error);
         return NextResponse.json(
-            { error: 'Failed to archive protocols', details: String(error) },
+            { error: 'Failed to archive trackers', details: String(error) },
             { status: 500 }
         );
     }
@@ -54,8 +54,8 @@ export async function DELETE() {
 
 /**
  * POST /api/demo/setup
- * Creates demo protocols and entries for the authenticated user
- * to showcase the platform's capabilities.
+ * Creates the sample trackers and 30 days of entries for the authenticated user,
+ * so someone can look around before deciding what to track.
  */
 export async function POST() {
     try {
@@ -69,16 +69,22 @@ export async function POST() {
         // Same identity rule as every other route: never adopt a row by email.
         const dbUser = await ensureUserExists(user.id, user.email!);
 
-        // Check if user already has protocols (don't overwrite)
+        // Never add sample trackers on top of a real account
         const existingHabits = await prisma.habit.count({
             where: { userId: dbUser.id }
         });
 
+        // Sample data is a lens on an empty account, not a second set of trackers
+        // mixed into a real one. Say so instead of returning 200 and navigating
+        // away with no message (ROADMAP.md T6).
         if (existingHabits > 0) {
-            return NextResponse.json({
-                success: false,
-                message: 'Demo data not created - user already has protocols'
-            });
+            return NextResponse.json(
+                {
+                    error:
+                        'Sample data needs an empty account. You already have trackers, so nothing was added. Open your Dashboard to log today, or use a new account to look around.',
+                },
+                { status: 409 }
+            );
         }
 
         // Create demo protocols

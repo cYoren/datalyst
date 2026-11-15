@@ -26,7 +26,8 @@ export async function GET() {
             weeklySummary,
             totalLoggingDays,
             user,
-            cachedInsights
+            cachedInsights,
+            readiness
         ] = await Promise.all([
             HabitService.getUserHabits(userId),
             DashboardService.getCompletionRate(userId, 7),
@@ -37,7 +38,16 @@ export async function GET() {
                 where: { id: userId },
                 select: { email: true, name: true }
             }),
-            prisma.insightsCache.findUnique({ where: { userId } })
+            prisma.insightsCache.findUnique({ where: { userId } }),
+            // How close the nearest pairs are to a pattern, so the dashboard can
+            // name them instead of counting days in general (ROADMAP.md W3).
+            // A failure is null, not []: empty means "nothing logged yet", and telling
+            // someone with 200 days of check-ins that they have logged nothing is the lie
+            // W3 exists to remove.
+            StatsService.getReadiness(userId).catch((error) => {
+                console.error('Readiness calculation failed:', error);
+                return null;
+            })
         ]);
 
         const now = new Date();
@@ -89,6 +99,7 @@ export async function GET() {
                 totalLoggingDays
             },
             insights,
+            readiness,
             user
         });
     } catch (error) {

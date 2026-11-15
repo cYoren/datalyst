@@ -7,7 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { ReminderControl } from '@/components/ui/ReminderControl';
 import { HealthImportControl } from '@/components/ui/HealthImportControl';
 import { Loader2, ArrowRight, ArrowLeft, Play, Check } from 'lucide-react';
-import { getBundlesForFocusArea, getTemplateById } from '@/lib/templates';
+import {
+    getBundlesForFocusArea,
+    getTemplateById,
+    startSubvariablesFor,
+    startTrackersForBundles,
+    startTrackerCount,
+    MAX_START_TRACKERS,
+} from '@/lib/templates';
 
 const FOCUS_AREAS = [
     { name: 'Symptoms', icon: 'brain', hint: 'Migraine, gut, pain, cycle' },
@@ -34,14 +41,6 @@ export default function OnboardingPage() {
     const created = useRef(new Set<string>());
 
     const availableBundles = useMemo(() => getBundlesForFocusArea(focus), [focus]);
-    // The real size of the sets this focus area offers, so the copy cannot promise 2 or 3 while
-    // the packs carry five.
-    const packSizes = useMemo(() => availableBundles.map((bundle) => bundle.protocolIds.length), [availableBundles]);
-    const packRange = packSizes.length
-        ? (Math.min(...packSizes) === Math.max(...packSizes)
-            ? `${packSizes[0]}`
-            : `${Math.min(...packSizes)} to ${Math.max(...packSizes)}`)
-        : null;
     const needsConsent = HEALTH_FOCUS.includes(focus);
 
     const pickFocus = (name: string) => {
@@ -55,11 +54,27 @@ export default function OnboardingPage() {
         window.scrollTo(0, 0);
     };
 
+    const [budgetMessage, setBudgetMessage] = useState<string | null>(null);
+
+    /**
+     * Day one asks one question per tracker and holds at most five, across every pack selected
+     * — not five per pack (ROADMAP.md W1). Choosing a pack that would overflow is refused here,
+     * with a reason, rather than silently creating fourteen trackers.
+     */
     const toggleBundle = (bundleId: string) => {
+        setBudgetMessage(null);
         setSelectedBundles(prev => {
             const next = new Set(prev);
-            if (next.has(bundleId)) next.delete(bundleId);
-            else next.add(bundleId);
+            if (next.has(bundleId)) {
+                next.delete(bundleId);
+                return next;
+            }
+            const candidate = availableBundles.filter(b => next.has(b.id) || b.id === bundleId);
+            if (startTrackerCount(candidate) > MAX_START_TRACKERS) {
+                setBudgetMessage(`Your first check-in holds ${MAX_START_TRACKERS} trackers, so one of your sets has to wait. Untick one to add this.`);
+                return prev;
+            }
+            next.add(bundleId);
             return next;
         });
     };
@@ -73,21 +88,29 @@ export default function OnboardingPage() {
         setLoading('start');
         setError(null);
         try {
-            const templateIds = new Set(
-                availableBundles.filter(b => selectedBundles.has(b.id)).flatMap(b => b.protocolIds)
-            );
-            for (const templateId of templateIds) {
+            // Day one is the smallest set that can answer a question: the symptom
+            // plus one question from each trigger (ROADMAP.md W1). The rest of each
+            // tracker is offered after the third check-in.
+            const bundles = availableBundles.filter(b => selectedBundles.has(b.id));
+            for (const { templateId, bundle } of startTrackersForBundles(bundles)) {
                 const template = getTemplateById(templateId);
                 if (!template || created.current.has(templateId)) continue;
+                // One question, always: the tracker's own first one, so a bundle that ran out of
+                // budget still leaves a usable tracker instead of an empty one.
+                const startSubs = startSubvariablesFor(templateId, bundle);
+                const subvariables = (startSubs.length > 0 ? startSubs : [template.subvariables[0]])
+                    .filter(Boolean)
+                    .slice(0, 1);
                 await post('/api/habits', {
                     name: template.name,
+                    templateOrigin: template.id,
                     description: template.description,
                     icon: template.icon,
                     color: template.color,
-                    subvariables: template.subvariables.map(sv => ({
+                    subvariables: subvariables.map(sv => ({
                         name: sv.name,
                         type: sv.type,
-                        unit: sv.unit || undefined,
+                        unit: 'unit' in sv ? (sv.unit || undefined) : undefined,
                         order: sv.order,
                         metadata: sv.metadata || {},
                     })),
@@ -113,7 +136,15 @@ export default function OnboardingPage() {
         setLoading('demo');
         setError(null);
         try {
-            await post('/api/demo/setup', {});
+            const res = await fetch('/api/demo/setup', { method: 'POST' });
+            if (!res.ok) {
+                // The server explains why, e.g. an account that already has trackers.
+                // Showing its sentence is the whole point of the 409.
+                const body = await res.json().catch(() => null);
+                setError(body?.error || 'Could not load the sample data. Try again.');
+                setLoading(null);
+                return;
+            }
             router.push('/dashboard');
             router.refresh();
         } catch (err) {
@@ -140,7 +171,7 @@ export default function OnboardingPage() {
                             What do you want to understand?
                         </h1>
                         <p className="mt-2 text-[var(--text-secondary)]">
-                            Log a few things daily. After 14 days Datalyst shows you what actually moves the needle for you.
+                            Log a few things daily. You see your week from day one, and a pattern appears when two things have been logged together on enough days.
                         </p>
 
                         <div className="mt-6 grid gap-3">
@@ -184,10 +215,8 @@ export default function OnboardingPage() {
                             Pick what to track
                         </h1>
                         <p className="mt-2 text-[var(--text-secondary)]">
-                            {packRange
-                                ? `Each set is ${packRange} trackers chosen so their patterns show up together.`
-                                : 'Each set is chosen so its patterns show up together.'}{' '}
-                            Most people start with one set; you can add or remove trackers anytime.
+                            Each set is a symptom and the habits most likely to move it. You start with
+                            one question each, and the rest opens up after your third day of check-ins.
                         </p>
 
                         <div className="mt-6 space-y-3">
@@ -224,6 +253,10 @@ export default function OnboardingPage() {
                                 );
                             })}
                         </div>
+
+                        {budgetMessage && (
+                            <p className="mt-3 text-sm text-[var(--color-amber)]" role="status">{budgetMessage}</p>
+                        )}
 
                         <div className="mt-6">
                             <ReminderControl />

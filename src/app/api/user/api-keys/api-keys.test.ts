@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 
 const prismaMock = vi.hoisted(() => ({
     apiKey: { count: vi.fn(), create: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
+    habit: { findMany: vi.fn() },
 }));
 const userMock = vi.hoisted(() => ({ current: { id: 'alice' } as { id: string } | null }));
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
@@ -54,6 +55,7 @@ describe('self-serve API keys', () => {
 
     it('lists and revokes only the user\'s own keys', async () => {
         prismaMock.apiKey.findMany.mockResolvedValue([]);
+        prismaMock.habit.findMany.mockResolvedValue([]);
         await GET();
         expect(prismaMock.apiKey.findMany.mock.calls[0][0].where).toMatchObject({ userId: 'alice', isActive: true });
         expect(prismaMock.apiKey.findMany.mock.calls[0][0].select.keyHash).toBeUndefined();
@@ -67,5 +69,60 @@ describe('self-serve API keys', () => {
         const ok = await DELETE(new Request('http://localhost'), { params: Promise.resolve({ id: 'k1' }) });
         expect(ok.status).toBe(200);
         expect(prismaMock.apiKey.updateMany.mock.calls[1][0].data).toMatchObject({ isActive: false });
+    });
+});
+
+describe('the key activity list (S3)', () => {
+    it('returns actions with a tracker name and never a value', async () => {
+        prismaMock.apiKey.findMany.mockResolvedValue([
+            {
+                id: 'key-1', name: 'Assistant', prefix: 'dl_abc', scopes: ['read', 'write'],
+                createdAt: new Date('2026-11-01'), lastUsedAt: new Date('2026-11-14'),
+                appId: null, readableSubvariableIds: [],
+                events: [
+                    { id: 'e1', action: 'write', createdAt: new Date('2026-11-14T09:00:00Z'), logicalDate: new Date('2026-11-14'), habitId: 'habit-1' },
+                    { id: 'e2', action: 'read', createdAt: new Date('2026-11-14T08:00:00Z'), logicalDate: null, habitId: null },
+                ],
+            },
+        ]);
+        prismaMock.habit.findMany.mockResolvedValue([{ id: 'habit-1', name: 'Sleep quality' }]);
+
+        const response = await GET();
+        const { keys } = await response.json();
+
+        expect(keys[0].events).toEqual([
+            expect.objectContaining({ action: 'write', habitName: 'Sleep quality' }),
+            expect.objectContaining({ action: 'read', habitName: null }),
+        ]);
+        // The event row has no value column and the response must not invent one.
+        expect(JSON.stringify(keys)).not.toMatch(/numericValue|rawValue|value/i);
+        // Names are resolved only for this user's trackers.
+        expect(prismaMock.habit.findMany.mock.calls[0][0].where).toMatchObject({ userId: 'alice' });
+    });
+});
+
+describe('ordering the activity list (S3 review)', () => {
+    it('shows writes before read polls, so a polling assistant does not hide its own actions', async () => {
+        const read = (n: number) => ({
+            id: `r${n}`, action: 'read', createdAt: new Date(`2026-11-14T1${n}:00:00Z`), logicalDate: null, habitId: null,
+        });
+        prismaMock.apiKey.findMany.mockResolvedValue([
+            {
+                id: 'key-1', name: 'Assistant', prefix: 'dl_abc', scopes: ['read', 'write'],
+                createdAt: new Date('2026-11-01'), lastUsedAt: new Date('2026-11-14'), appId: null, readableSubvariableIds: [],
+                events: [
+                    read(0), read(1), read(2), read(3),
+                    { id: 'w1', action: 'write', createdAt: new Date('2026-11-14T09:00:00Z'), logicalDate: new Date('2026-11-13T00:00:00Z'), habitId: 'habit-1' },
+                    read(4),
+                ],
+            },
+        ]);
+        prismaMock.habit.findMany.mockResolvedValue([{ id: 'habit-1', name: 'Sleep quality' }]);
+
+        const { keys } = await (await GET()).json();
+
+        expect(keys[0].events[0]).toMatchObject({ action: 'write', habitName: 'Sleep quality' });
+        expect(keys[0].events).toHaveLength(5);
+        expect(keys[0].events.filter((event: { action: string }) => event.action === 'write')).toHaveLength(1);
     });
 });

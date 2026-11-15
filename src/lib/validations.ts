@@ -26,7 +26,7 @@ export const createHabitSchema = z.object({
     }).optional(),
 });
 
-export const updateHabitSchema = createHabitSchema.partial();
+
 
 // Subvariable validation schemas
 export const createSubvariableSchema = z.object({
@@ -38,6 +38,22 @@ export const createSubvariableSchema = z.object({
     goalDirection: z.enum(['HIGHER_BETTER', 'LOWER_BETTER', 'NEUTRAL']).default('NEUTRAL'),
     metadata: z.record(z.string(), z.unknown()).optional(),
     order: z.number().int().min(0).default(0),
+});
+
+/**
+ * An edit may change the tracker's questions.
+ *
+ * `createHabitSchema.partial()` used to drop `subvariables` silently, so the habit form's save
+ * did nothing for them — which made "add the rest of the pack" a dead end (`ROADMAP.md` W1).
+ */
+export const updateHabitSchema = createHabitSchema.partial().extend({
+    subvariables: z.array(
+        createSubvariableSchema.omit({ habitId: true }).extend({
+            // An existing question keeps its id so it is updated rather than recreated.
+            id: z.string().cuid().optional(),
+        })
+    ).optional(),
+    archived: z.boolean().optional(),
 });
 
 // Entry validation schemas
