@@ -88,3 +88,10 @@ A self-hosted install sends nothing to us: no analytics beacon unless you set yo
 
 [AGPL-3.0](LICENSE). Use it, change it, self-host it. If you run a modified version as a service for others,
 share your changes under the same license.
+
+## Licence and name
+
+AGPL-3.0, see [LICENSE](LICENSE). A hosted or modified copy has to publish its source to the people
+who use it, which is why self-hosting stays free and the hosted service is the paid layer.
+
+The name, the logo and the site are not part of the grant: a fork ships under its own name.
